@@ -119,8 +119,11 @@ class GameEngine:
 
     def _reveal_next(self, payload: Dict[str, Any]):
         pid, attr = payload["player_id"], payload["attribute"]
-        expected, allowed = self._get_current_turn_info()
-        if pid != expected["player_id"] or attr not in expected["allowed"]:
+        current_turn_info = self._get_current_turn_info()
+        if (
+            pid != current_turn_info["player_id"]
+            or attr not in current_turn_info["allowed"]
+        ):
             raise ValueError("Invalid reveal")
 
         self.game.characters[pid].reveal(attr)
