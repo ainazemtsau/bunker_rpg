@@ -4,36 +4,22 @@ from typing import Any, Dict, List, Optional
 from collections import Counter
 
 from bunker.domain.types import GamePhase, ActionType, GameAction
-from bunker.domain.events import EventBus, BaseGameEvent
-from bunker.domain.phase2.actions import (
-    ActionRegistry,
-    AttackBunkerAction,
-    RepairBunkerAction,
-)
-from bunker.domain.phase2.team_manager import TeamManager
-from bunker.domain.phase2.turn_processor import TurnProcessor
+from bunker.domain.phase2.phase2_engine import Phase2Engine
+from bunker.domain.phase2.types import CrisisResult
+from bunker.core.loader import GameData
 
 
 class GameEngine:
     """Основной движок игры"""
 
-    def __init__(self, game, initializer, action_registry: ActionRegistry = None):
+    def __init__(self, game, initializer, game_data: GameData = None):
         self.game = game
         self._initializer = initializer
         self._phase = GamePhase.LOBBY
-        self._event_bus = EventBus()
-        self._action_registry = action_registry or self._create_default_registry()
-        self._team_manager = TeamManager()
-        self._turn_processor = TurnProcessor(self._action_registry, self._event_bus)
+        self._game_data = game_data
 
-        # Phase2 состояние
-        self._bunker_team = None
-        self._outside_team = None
-        self._current_team = None
-
-        # Настройки Phase2
-        self.PHASE2_MAX_ROUNDS = 10
-        self.PHASE2_BUNKER_HP = 7
+        # Phase2 engine
+        self._phase2_engine: Optional[Phase2Engine] = None
 
     def execute(self, action: GameAction) -> None:
         """Выполнить игровое действие"""
@@ -91,8 +77,17 @@ class GameEngine:
 
     def _execute_phase2_action(self, action: GameAction) -> None:
         """Выполнить действие Phase2"""
+        if not self._phase2_engine:
+            raise ValueError("Phase2 engine not initialized")
+
         if action.type == ActionType.MAKE_ACTION:
             self._phase2_player_action(action.payload)
+        elif action.type == ActionType.PROCESS_ACTION:
+            self._phase2_process_action()
+        elif action.type == ActionType.RESOLVE_CRISIS:
+            self._phase2_resolve_crisis(action.payload)
+        elif action.type == ActionType.FINISH_TEAM_TURN:
+            self._phase2_finish_team_turn()
 
     # ======== Phase1 методы ========
     def _start_game(self):
@@ -161,107 +156,86 @@ class GameEngine:
     # ======== Phase2 методы ========
     def _init_phase2(self):
         """Инициализация Phase2"""
+        if not self._game_data:
+            raise ValueError("GameData required for Phase2")
+
+        # Распределяем игроков по командам
         alive = set(self.game.alive_ids())
         eliminated = set(self.game.eliminated_ids)
 
-        self._bunker_team, self._outside_team = self._team_manager.initialize_teams(
-            alive, eliminated
-        )
-
-        # Обновляем состояние игры
         self.game.team_in_bunker = alive
         self.game.team_outside = eliminated
-        self.game.phase2_round = 1
-        self.game.phase2_bunker_hp = self.PHASE2_BUNKER_HP
-        self.game.phase2_action_log = []
-        self.game.winner = None
 
-        # Начинаем с команды outside
-        self._current_team = self._outside_team
-        self.game.phase2_team = "outside"
-        self._update_game_turn_order()
+        # Инициализируем движок Phase2
+        self._phase2_engine = Phase2Engine(self.game, self._game_data)
+        self._phase2_engine.initialize_phase2()
 
         self._phase = GamePhase.PHASE2
 
     def _phase2_player_action(self, payload: Dict[str, Any]):
-        """Обработка действия игрока в Phase2"""
-        if self.game.winner:
-            self._phase = GamePhase.FINISHED
+        """Добавить действие игрока в Phase2"""
+        if not self._phase2_engine:
             return
 
         player_id = payload["player_id"]
-        current_player = self._team_manager.get_current_player(self._current_team)
+        action_id = payload["action_id"]
+        params = payload.get("params", {})
 
-        if player_id != current_player:
-            raise ValueError("Not this player's turn")
+        success = self._phase2_engine.add_player_action(player_id, action_id, params)
+        if not success:
+            raise ValueError("Invalid player action")
 
-        # Выполняем действие (упрощенная версия для совместимости)
-        action_type = payload.get("action_type", "noop")
-        self._current_team.completed_actions[player_id] = {
-            "player_id": player_id,
-            "action_type": action_type,
-            "params": payload.get("params", {}),
-            "result": "success",
-        }
+        # Проверяем завершение игры после каждого действия
+        self._check_phase2_victory()
 
-        # Переходим к следующему игроку
-        team_finished = self._team_manager.advance_turn(self._current_team)
-
-        if team_finished:
-            self._finish_team_turn()
-        else:
-            self._update_game_turn_order()
-
-    def _finish_team_turn(self):
-        """Завершить ход команды"""
-        team_name = self.game.phase2_team
-        actions = list(self._current_team.completed_actions.values())
-
-        # Подсчитываем урон (упрощенная логика)
-        damage = 0
-        if team_name == "outside":
-            damage = len([a for a in actions if a["action_type"] == "attack"])
-            self.game.phase2_bunker_hp -= damage
-
-        # Логируем
-        self.game.phase2_action_log.append(
-            {
-                "round": self.game.phase2_round,
-                "team": team_name,
-                "actions": actions,
-                "damage": damage,
-                "bunker_hp_after": self.game.phase2_bunker_hp,
-            }
-        )
-
-        # Проверяем победителя
-        self._check_winner()
-        if self.game.winner:
-            self._phase = GamePhase.FINISHED
+    def _phase2_process_action(self):
+        """Обработать следующее действие в очереди"""
+        if not self._phase2_engine:
             return
 
-        # Переключаем команду
-        if team_name == "outside":
-            self._current_team = self._bunker_team
-            self.game.phase2_team = "bunker"
-        else:
-            self._current_team = self._outside_team
-            self.game.phase2_team = "outside"
-            self.game.phase2_round += 1
+        if not self._phase2_engine.can_process_actions():
+            raise ValueError("Cannot process actions yet")
 
-        # Сбрасываем ход команды
-        self._team_manager.reset_team_turn(self._current_team)
-        self._update_game_turn_order()
+        result = self._phase2_engine.process_current_action()
 
-    def _check_winner(self):
-        """Проверить условия победы"""
-        if self.game.phase2_bunker_hp <= 0:
-            self.game.winner = "outside"
-        elif (
-            self.game.phase2_round > self.PHASE2_MAX_ROUNDS
-            and self.game.phase2_team == "outside"
-        ):
-            self.game.winner = "bunker"
+        # Проверяем завершение игры
+        self._check_phase2_victory()
+
+        return result
+
+    def _phase2_resolve_crisis(self, payload: Dict[str, Any]):
+        """Разрешить кризис"""
+        if not self._phase2_engine:
+            return
+
+        result_str = payload.get("result")
+        if result_str not in ["bunker_win", "bunker_lose"]:
+            raise ValueError("Invalid crisis result")
+
+        result = CrisisResult(result_str)
+        self._phase2_engine.resolve_crisis(result)
+
+        # Проверяем завершение игры
+        self._check_phase2_victory()
+
+    def _phase2_finish_team_turn(self):
+        """Завершить ход команды"""
+        if not self._phase2_engine:
+            return
+
+        self._phase2_engine.finish_team_turn()
+
+        # Проверяем завершение игры
+        self._check_phase2_victory()
+
+    def _check_phase2_victory(self):
+        """Проверить условия победы в Phase2"""
+        if not self._phase2_engine:
+            return
+
+        victory_condition = self._phase2_engine.check_victory_conditions()
+        if victory_condition:
+            self._phase = GamePhase.FINISHED
 
     # ======== Вспомогательные методы ========
     def _get_current_turn_info(self) -> Dict[str, Any]:
@@ -276,32 +250,48 @@ class GameEngine:
             return {"player_id": pid, "allowed": allowed}
         return {}
 
-    def _update_game_turn_order(self):
-        """Обновить порядок ходов в game объекте для совместимости"""
-        if self._current_team:
-            self.game.phase2_turn_order = self._current_team.turn_order
-            self.game.phase2_current_idx = self._current_team.current_player_index
-
     def _get_phase2_view(self) -> Dict[str, Any]:
         """Получить представление Phase2"""
+        if not self._phase2_engine:
+            return {"phase2": {}}
+
+        current_player = self._phase2_engine.get_current_player()
+        available_actions = []
+
+        if current_player:
+            actions = self._phase2_engine.get_available_actions(
+                self.game.phase2_current_team
+            )
+            available_actions = [{"id": a.id, "name": a.name} for a in actions]
+
+        crisis = self._phase2_engine.get_current_crisis()
+        crisis_data = None
+        if crisis:
+            crisis_data = {
+                "id": crisis.crisis_id,
+                "name": crisis.name,
+                "description": crisis.description,
+                "important_stats": crisis.important_stats,
+                "team_advantages": crisis.team_advantages,
+            }
+
+        next_action = self._phase2_engine.get_next_action_to_process()
+
         return {
             "phase2": {
-                "round": getattr(self.game, "phase2_round", 1),
-                "team": getattr(self.game, "phase2_team", "outside"),
-                "bunker_hp": getattr(
-                    self.game, "phase2_bunker_hp", self.PHASE2_BUNKER_HP
-                ),
-                "turn_order": getattr(self.game, "phase2_turn_order", []),
-                "current_idx": getattr(self.game, "phase2_current_idx", 0),
-                "current_player": (
-                    self.game.phase2_turn_order[self.game.phase2_current_idx]
-                    if hasattr(self.game, "phase2_turn_order")
-                    and self.game.phase2_turn_order
-                    and self.game.phase2_current_idx < len(self.game.phase2_turn_order)
-                    else None
-                ),
-                "action_log": getattr(self.game, "phase2_action_log", []),
-                "winner": getattr(self.game, "winner", None),
+                "round": self.game.phase2_round,
+                "current_team": self.game.phase2_current_team,
+                "bunker_hp": self.game.phase2_bunker_hp,
+                "current_player": current_player,
+                "available_actions": available_actions,
+                "action_queue": self.game.phase2_action_queue,
+                "current_action": next_action,
+                "can_process_actions": self._phase2_engine.can_process_actions(),
+                "team_turn_complete": self._phase2_engine.is_team_turn_complete(),
+                "current_crisis": crisis_data,
+                "team_stats": self.game.phase2_team_stats,
+                "action_log": self.game.phase2_action_log,
+                "winner": self.game.winner,
             }
         }
 
@@ -329,13 +319,34 @@ class GameEngine:
             else:
                 return ["cast_vote"]
         elif self._phase == GamePhase.PHASE2:
-            return ["make_action"]
+            actions = []
+            if self._phase2_engine:
+                # Добавляем make_action если есть текущий игрок
+                if self._phase2_engine.get_current_player():
+                    actions.append("make_action")
+
+                # Добавляем process_action если можем обрабатывать
+                if self._phase2_engine.can_process_actions():
+                    actions.append("process_action")
+
+                # Добавляем resolve_crisis если есть кризис
+                if self._phase2_engine.get_current_crisis():
+                    actions.append("resolve_crisis")
+
+                # Добавляем finish_team_turn если ход команды завершен и нет действий
+                current_team = self._phase2_engine._team_states.get(
+                    self.game.phase2_current_team
+                )
+                if (
+                    current_team
+                    and current_team.is_complete()
+                    and (
+                        len(self.game.phase2_action_queue) == 0
+                        or self.game.phase2_current_action_index
+                        >= len(self.game.phase2_action_queue)
+                    )
+                ):
+                    actions.append("finish_team_turn")
+            return actions
         else:
             return []
-
-    def _create_default_registry(self) -> ActionRegistry:
-        """Создать стандартный реестр действий"""
-        registry = ActionRegistry()
-        registry.register_action(AttackBunkerAction())
-        registry.register_action(RepairBunkerAction())
-        return registry

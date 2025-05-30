@@ -39,8 +39,7 @@ class GameInitializer:
     def setup_new_game(self, game: Game) -> None:
         self._assign_characters(game)
         self._assign_bunker_cards(game)
-        game.crises = list(self._data.crises.values())
-        game.actions = list(self._data.actions.values())
+        # Убрали: game.crises = list(self._data.crises.values())
 
     def _assign_characters(self, game: Game) -> None:
         n = len(game.players)

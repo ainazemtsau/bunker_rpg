@@ -1,0 +1,97 @@
+# Действия команды снаружи
+- id: attack_bunker
+  name: Атаковать бункер
+  team: outside
+  difficulty: 12
+  required_stats: [СИЛ, ТЕХ]
+  stat_weights:
+    СИЛ: 1.0
+    ТЕХ: 0.5
+  effects:
+    success:
+      bunker_damage: 2
+    failure: {}
+
+- id: sabotage
+  name: Саботировать системы
+  team: outside
+  difficulty: 15
+  required_stats: [ТЕХ, ИНТ]
+  stat_weights:
+    ТЕХ: 1.0
+    ИНТ: 0.7
+  effects:
+    success:
+      bunker_damage: 1
+      crisis_chance: 0.3
+    failure: {}
+
+- id: psychological_warfare
+  name: Психологическая война
+  team: outside
+  difficulty: 13
+  required_stats: [ХАР, ЭМП]
+  stat_weights:
+    ХАР: 1.0
+    ЭМП: 0.8
+  effects:
+    success:
+      morale_damage: 2
+    failure: {}
+
+# Действия команды в бункере
+- id: repair_bunker
+  name: Ремонтировать бункер
+  team: bunker
+  difficulty: 10
+  required_stats: [ТЕХ, СИЛ]
+  stat_weights:
+    ТЕХ: 1.0
+    СИЛ: 0.5
+  effects:
+    success:
+      bunker_heal: 1
+    failure:
+      crisis_trigger: structural_damage
+
+- id: fortify
+  name: Укреплять оборону
+  team: bunker
+  difficulty: 12
+  required_stats: [СИЛ, ИНТ]
+  stat_weights:
+    СИЛ: 1.0
+    ИНТ: 0.6
+  effects:
+    success:
+      defense_bonus: 1
+    failure:
+      crisis_trigger: resource_shortage
+
+- id: medical_aid
+  name: Оказать медпомощь
+  team: bunker
+  difficulty: 11
+  required_stats: [ЭМП, ИНТ]
+  stat_weights:
+    ЭМП: 1.0
+    ИНТ: 0.7
+  effects:
+    success:
+      morale_heal: 1
+    failure:
+      crisis_trigger: medical_emergency
+
+- id: search_supplies
+  name: Искать припасы
+  team: bunker
+  difficulty: 9
+  required_stats: [ИНТ, ЗДР]
+  stat_weights:
+    ИНТ: 0.8
+    ЗДР: 0.6
+  effects:
+    success:
+      supplies_bonus: 1
+    failure:
+      crisis_trigger: contamination

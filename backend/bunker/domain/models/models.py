@@ -64,9 +64,6 @@ class Game:
     bunker_cards: List[Any] = field(default_factory=list)
     bunker_reveal_idx: int = 0
     revealed_bunker_cards: List[Any] = field(default_factory=list)
-    phase2_pending_actions: List[Dict[str, Any]] = field(default_factory=list)
-    crises: List[Any] = field(default_factory=list)
-    actions: List[Any] = field(default_factory=list)
 
     eliminated_ids: Set[str] = field(default_factory=set)
     votes: Dict[str, str] = field(default_factory=dict)
@@ -75,33 +72,38 @@ class Game:
     attr_index: int = 0
     first_round_attribute: Optional[str] = "profession"
 
-    # === NEW: команды для фазы 2 ===
-    team_in_bunker: set = field(default_factory=set)  # id игроков в бункере
-    team_outside: set = field(default_factory=set)  # id вне бункера
+    # === Phase2 consolidated fields ===
+    team_in_bunker: Set[str] = field(default_factory=set)
+    team_outside: Set[str] = field(default_factory=set)
 
-    phase2_round: int = 1  # номер раунда
-    phase2_team: str = "outside"  # чья очередь: "outside" | "bunker"
-    phase2_team_order: list = field(default_factory=list)  # порядок ходов в команде
-    phase2_team_current_idx: int = 0  # текущий индекс в очереди внутри команды
-    phase2_team_actions: dict = field(
+    # Phase2 game state
+    phase2_round: int = 1
+    phase2_current_team: str = "outside"  # "outside" | "bunker"
+    phase2_bunker_hp: int = 10
+    phase2_action_queue: List[Dict[str, Any]] = field(default_factory=list)
+    phase2_processed_actions: List[Dict[str, Any]] = field(default_factory=list)
+    phase2_current_action_index: int = 0
+    phase2_team_stats: Dict[str, Dict[str, int]] = field(
         default_factory=dict
-    )  # {player_id: {action_type, params}}
-    phase2_results: list = field(
-        default_factory=list
-    )  # [{round, team, actions: [...], summary: ...}]
-    phase2_bunker_hp: int = 10  # здоровье бункера (MVP)
-    winner: Optional[str] = None  # "bunker"|"outside"|None
+    )  # {team: {stat: value}}
+
+    # Phase2 results and winner
+    phase2_action_log: List[Dict[str, Any]] = field(default_factory=list)
+    winner: Optional[str] = None
 
     def reset_phase2(self):
         """Очистить все phase2-поля, если понадобится рестарт."""
         self.team_in_bunker.clear()
         self.team_outside.clear()
-        self.phase2_turn_order.clear()
-        self.phase2_current_idx = 0
         self.phase2_round = 1
+        self.phase2_current_team = "outside"
+        self.phase2_bunker_hp = 10
+        self.phase2_action_queue.clear()
+        self.phase2_processed_actions.clear()
+        self.phase2_current_action_index = 0
+        self.phase2_team_stats.clear()
         self.phase2_action_log.clear()
-        self.phase2_pending_actions.clear()
-        self.bunker_health = 10
+        self.winner = None
 
     def alive_ids(self) -> List[str]:
         return [pid for pid in self.players if pid not in self.eliminated_ids]
@@ -125,6 +127,6 @@ class Game:
             "bunker_reveal_idx": self.bunker_reveal_idx,
             "revealed_bunker_cards": self.revealed_bunker_cards,
             "eliminated_ids": list(self.eliminated_ids),
-            "team_in_bunker": list(self.team_in_bunker),  # ← NEW
-            "team_outside": list(self.team_outside),  # ← NEW
+            "team_in_bunker": list(self.team_in_bunker),
+            "team_outside": list(self.team_outside),
         }

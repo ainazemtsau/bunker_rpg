@@ -1,36 +1,33 @@
 from __future__ import annotations
 from typing import Dict, Any, Optional
+from pathlib import Path
 
-from .repo import game_repo  # In-Memory/SQL repo
+from .repo import game_repo
 from bunker.domain.models.models import Game, Player
-from bunker.domain.models.character import Character
-
-# ‼️  Новые пути импорта
-from bunker.domain.engine import GameEngine  # сам движок
-from bunker.domain.types import ActionType  # enum всех действий
+from bunker.domain.engine import GameEngine
+from bunker.domain.types import ActionType
+from bunker.core.loader import GameData
+from bunker.domain.game_init import GameInitializer
 
 
 class GameService:
     """Use-case слой: хранит GameEngine-ы и отдаёт фронту их snapshots."""
 
     def __init__(self) -> None:
-        self._engines: dict[str, GameEngine] = {}  # game_id → engine
+        self._engines: dict[str, GameEngine] = {}
+
+        # Загружаем данные один раз
+        data_dir = Path(r"C:/Users/Zema/bunker-game/backend/data")
+        self._game_data = GameData(root=data_dir)
+        self._initializer = GameInitializer(self._game_data)
 
     # ───────────────── Lobby ────────────────────────────────────────
     def create_game(self, host_name: str, sid: str) -> Dict[str, Any]:
-        from pathlib import Path
-        from bunker.core.loader import GameData
-        from bunker.domain.game_init import GameInitializer
-
         host = Player(host_name, sid)
         game = Game(host)
 
-        # Create the required dependencies
-        data_dir = Path(r"C:/Users/Zema/bunker-game/backend/data")
-        game_data = GameData(root=data_dir)
-        initializer = GameInitializer(game_data)
-
-        eng = GameEngine(game, initializer)
+        # Создаем движок с данными
+        eng = GameEngine(game, self._initializer, self._game_data)
 
         self._engines[game.id] = eng
         game_repo.add(game)
@@ -51,10 +48,45 @@ class GameService:
     ) -> Dict[str, Any]:
         eng = self._engines.get(gid) or self._not_found()
         try:
-            eng.execute(ActionType[action.upper()], payload or {})
-        except KeyError:  # неверное имя из фронта
+            action_type = ActionType[action.upper()]
+            from bunker.domain.types import GameAction
+
+            game_action = GameAction(type=action_type, payload=payload or {})
+            eng.execute(game_action)
+        except KeyError:
             raise ValueError(f"Unknown action '{action}'")
         return eng.view()
+
+    def get_game_snapshot(self, gid: str) -> Optional[Dict[str, Any]]:
+        """Получить снимок игры без выполнения действий"""
+        eng = self._engines.get(gid)
+        if not eng:
+            return None
+        return eng.view()
+
+    def get_phase2_available_actions(self, gid: str, team: str) -> List[Dict[str, Any]]:
+        """Получить доступные действия для команды в Phase2"""
+        eng = self._engines.get(gid) or self._not_found()
+        if not eng._phase2_engine:
+            return []
+
+        actions = eng._phase2_engine.get_available_actions(team)
+        return [
+            {
+                "id": action.id,
+                "name": action.name,
+                "difficulty": action.difficulty,
+                "required_stats": action.required_stats,
+                "stat_weights": action.stat_weights,
+            }
+            for action in actions
+        ]
+
+    def get_phase2_team_stats(self, gid: str) -> Dict[str, Dict[str, int]]:
+        """Получить статистики команд"""
+        eng = self._engines.get(gid) or self._not_found()
+        game = eng.game
+        return game.phase2_team_stats
 
     # ───────────────── Re/connect ───────────────────────────────────
     def rejoin(self, gid: str, player_id: str, sid: str) -> Dict[str, Any]:
@@ -70,15 +102,6 @@ class GameService:
                     p.online = False
                     return self._engines[gid].view()
         return None
-
-    # ───────────────── Test helper ─────────────────────────────────
-    def assign_characters(self, gid: str, templates: list[dict]) -> None:
-        """Утилита для юнит-тестов: раздать персонажей."""
-        import random
-
-        game = game_repo.get(gid) or self._not_found()
-        for pid in game.players:
-            game.characters[pid] = Character(**random.choice(templates))
 
     # ───────────────── Internals ───────────────────────────────────
     @staticmethod

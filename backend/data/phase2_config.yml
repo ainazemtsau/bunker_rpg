@@ -1,0 +1,34 @@
+# Базовые настройки игры
+game_settings:
+  max_rounds: 10
+  starting_bunker_hp: 7
+  starting_morale: 10
+  starting_supplies: 8
+
+# Условия победы
+victory_conditions:
+  bunker_destroyed:
+    condition: bunker_hp <= 0
+    winner: outside
+  morale_broken:
+    condition: morale <= 0
+    winner: outside
+  supplies_exhausted:
+    condition: supplies <= 0
+    winner: outside
+  time_limit:
+    condition: round > max_rounds
+    winner: bunker
+
+# Механики
+mechanics:
+  crisis_on_failure: true
+  team_stat_calculation: sum # sum | average | max
+  dice_type: d20
+  stat_advantage_threshold: 5 # разница в статах для получения преимущества
+
+# Коэффициенты для расчетов
+coefficients:
+  base_crisis_chance: 0.2
+  stat_advantage_bonus: 2
+  group_action_bonus: 0.5 # бонус за совместные действия

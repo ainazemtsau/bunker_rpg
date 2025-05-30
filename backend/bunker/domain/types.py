@@ -24,6 +24,9 @@ class ActionType(Enum):
     CAST_VOTE = auto()
     REVEAL_RESULTS = auto()
     MAKE_ACTION = auto()
+    PROCESS_ACTION = auto()  # новое
+    RESOLVE_CRISIS = auto()  # новое
+    FINISH_TEAM_TURN = auto()  # новое
 
 
 @dataclass(frozen=True)

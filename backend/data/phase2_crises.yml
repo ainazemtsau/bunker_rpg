@@ -1,0 +1,45 @@
+- id: structural_damage
+  name: Структурные повреждения
+  description: "В бункере обнаружены трещины в стенах. Требуется срочный ремонт!"
+  important_stats: [ТЕХ, СИЛ]
+  penalty_on_fail:
+    bunker_damage: 2
+    morale_damage: 1
+
+- id: resource_shortage
+  name: Нехватка ресурсов
+  description: "Запасы еды и воды на исходе. Нужно найти новые источники!"
+  important_stats: [ИНТ, ЗДР]
+  penalty_on_fail:
+    supplies_damage: 2
+    morale_damage: 1
+
+- id: medical_emergency
+  name: Медицинская помощь
+  description: "Один из обитателей бункера серьезно ранен. Требуется немедленная помощь!"
+  important_stats: [ЭМП, ИНТ]
+  penalty_on_fail:
+    morale_damage: 3
+
+- id: contamination
+  name: Заражение
+  description: "В системе вентиляции обнаружены токсичные вещества!"
+  important_stats: [ТЕХ, ЗДР]
+  penalty_on_fail:
+    bunker_damage: 1
+    morale_damage: 2
+
+- id: power_failure
+  name: Отключение электричества
+  description: "Генератор вышел из строя. Бункер погружается во тьму!"
+  important_stats: [ТЕХ, ИНТ]
+  penalty_on_fail:
+    bunker_damage: 1
+    supplies_damage: 1
+
+- id: psychological_breakdown
+  name: Психологический срыв
+  description: "Постоянное напряжение доводит обитателей до нервного срыва!"
+  important_stats: [ЭМП, ХАР]
+  penalty_on_fail:
+    morale_damage: 4

@@ -83,6 +83,100 @@ def register_events(sio):
             return emit("error", {"message": str(e)})
         sio.emit("game_started", {"game": snap}, room=_room_id(snap))
 
+    # ---------- Phase2 specific events --------------------
+    @sio.on("phase2_player_action")
+    def phase2_player_action(data):
+        """Игрок выбирает действие в Phase2"""
+        try:
+            print("[phase2_player_action]", data)
+            required_fields = ["gameId", "playerId", "actionId"]
+            if not all(field in data for field in required_fields):
+                return emit("error", {"message": "Missing required fields"})
+
+            snap = service.execute_game_action(
+                data["gameId"],
+                "make_action",
+                {
+                    "player_id": data["playerId"],
+                    "action_id": data["actionId"],
+                    "params": data.get("params", {}),
+                },
+            )
+            sio.emit("game_updated", {"game": snap}, room=_room_id(snap))
+            emit("action_added", {"success": True}, room=request.sid)
+
+        except ValueError as e:
+            emit("error", {"message": str(e)})
+
+    @sio.on("phase2_process_action")
+    def phase2_process_action(data):
+        """Обработать следующее действие в очереди"""
+        try:
+            print("[phase2_process_action]", data)
+            if "gameId" not in data:
+                return emit("error", {"message": "Missing gameId"})
+
+            snap = service.execute_game_action(data["gameId"], "process_action", {})
+            sio.emit("game_updated", {"game": snap}, room=_room_id(snap))
+            emit("action_processed", {"success": True}, room=request.sid)
+
+        except ValueError as e:
+            emit("error", {"message": str(e)})
+
+    @sio.on("phase2_resolve_crisis")
+    def phase2_resolve_crisis(data):
+        """Разрешить кризисную ситуацию"""
+        try:
+            print("[phase2_resolve_crisis]", data)
+            required_fields = ["gameId", "result"]
+            if not all(field in data for field in required_fields):
+                return emit("error", {"message": "Missing required fields"})
+
+            if data["result"] not in ["bunker_win", "bunker_lose"]:
+                return emit("error", {"message": "Invalid crisis result"})
+
+            snap = service.execute_game_action(
+                data["gameId"], "resolve_crisis", {"result": data["result"]}
+            )
+            sio.emit("game_updated", {"game": snap}, room=_room_id(snap))
+            emit("crisis_resolved", {"success": True}, room=request.sid)
+
+        except ValueError as e:
+            emit("error", {"message": str(e)})
+
+    @sio.on("phase2_finish_turn")
+    def phase2_finish_turn(data):
+        """Завершить ход команды"""
+        try:
+            print("[phase2_finish_turn]", data)
+            if "gameId" not in data:
+                return emit("error", {"message": "Missing gameId"})
+
+            snap = service.execute_game_action(data["gameId"], "finish_team_turn", {})
+            sio.emit("game_updated", {"game": snap}, room=_room_id(snap))
+            emit("turn_finished", {"success": True}, room=request.sid)
+
+        except ValueError as e:
+            emit("error", {"message": str(e)})
+
+    @sio.on("get_phase2_info")
+    def get_phase2_info(data):
+        """Получить детальную информацию о Phase2"""
+        try:
+            if "gameId" not in data:
+                return emit("error", {"message": "Missing gameId"})
+
+            snap = service.get_game_snapshot(data["gameId"])
+            if not snap:
+                return emit("error", {"message": "Game not found"})
+
+            # Отправляем только Phase2 данные
+            phase2_info = snap.get("phase2", {})
+            emit("phase2_info", {"phase2": phase2_info}, room=request.sid)
+
+        except ValueError as e:
+            emit("error", {"message": str(e)})
+
     # ---------- misc ---------------------------------------
     @sio.on("host_message")
     def host_message(data):

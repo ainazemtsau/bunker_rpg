@@ -1,7 +1,0 @@
-- id: blackout
-  name: Полная темнота
-  tags: [darkness]
-  check: { ТЕХ: 40, ЭМП: 60 }
-  fail_effect:
-    penalty: { ЭМП: -5 }
-  irl_game: blind_checkers

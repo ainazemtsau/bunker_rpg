@@ -3,10 +3,13 @@ from typing import Type, Callable, Any
 
 from bunker.domain.models.traits import Trait
 from bunker.domain.models.phobias import Phobia
-from bunker.domain.models.crises import Crisis
 from bunker.domain.models.irl_games import IRLGame
-from bunker.domain.models.actions import Action  # ← новый класс, см. п. 2
 from bunker.domain.models.bunker_object import BunkerObject
+from bunker.domain.models.phase2_models import (
+    Phase2ActionDef,
+    Phase2CrisisDef,
+    Phase2Config,
+)
 
 LOAD_MAP: dict[str, Callable[[Any], Any]] = {
     "professions": Trait.from_raw,
@@ -16,13 +19,14 @@ LOAD_MAP: dict[str, Callable[[Any], Any]] = {
     "personalities": Trait.from_raw,
     "secrets": Trait.from_raw,
     "phobias": Phobia.from_raw,
-    "crises": Crisis.from_raw,
     "irl_games": IRLGame.from_raw,
-    "actions": Action.from_raw,
     "bunker_objects": BunkerObject.from_raw,
+    "phase2_actions": Phase2ActionDef.from_raw,
+    "phase2_crises": Phase2CrisisDef.from_raw,
 }
 
 BASE_FILES = {k: f"{k}.yml" for k in LOAD_MAP.keys()}
+BASE_FILES["phase2_config"] = "phase2_config.yml"
 
 
 def load_any(path: Path) -> list[Any]:
@@ -36,20 +40,17 @@ class GameData:
     def __init__(self, root: Path | str):
         root = Path(root)
 
+        # Загружаем обычные коллекции
         for name, factory in LOAD_MAP.items():
-            records = [factory(rec) for rec in load_any(root / BASE_FILES[name])]
-            setattr(
-                self,
-                name,
-                records if name.endswith("s") else {r.id: r for r in records},
-            )
-            raw = load_any(root / BASE_FILES[name])
+            file_path = root / BASE_FILES[name]
+            raw = load_any(file_path)
             records = [factory(rec) for rec in raw]
-            # все наши коллекции (professions, crises, bunker_objects и т.д.)—
-            # это списки, кроме тех, что мы хотим по id.
-            if name in ("crises", "irl_games", "actions"):
-                # словари по ключу .id
+            if name in ("irl_games", "phase2_actions", "phase2_crises"):
                 setattr(self, name, {r.id: r for r in records})
             else:
-                # просто список
                 setattr(self, name, records)
+
+        # Загружаем конфигурацию Phase2 отдельно
+        config_path = root / BASE_FILES["phase2_config"]
+        config_raw = load_any(config_path)
+        self.phase2_config = Phase2Config.from_raw(config_raw)
