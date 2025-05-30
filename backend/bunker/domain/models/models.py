@@ -24,9 +24,39 @@ def _gen_code(k: int = 6) -> str:
     return "".join(random.choices(string.ascii_uppercase + string.digits, k=k))
 
 
+@dataclass(slots=True)
+class BunkerObjectState:
+    """Состояние объекта бункера"""
+
+    object_id: str
+    name: str
+    status: str = "working"  # working | damaged | destroyed
+
+    def is_usable(self) -> bool:
+        return self.status == "working"
+
+
+@dataclass(slots=True)
+class DebuffEffect:
+    """Эффект дебафа"""
+
+    effect_id: str
+    name: str
+    stat_penalties: Dict[str, int]
+    remaining_rounds: int
+    source: str  # откуда пришел дебаф
+
+
+@dataclass(slots=True)
+class PhobiaStatus:
+    """Активный статус фобии"""
+
+    phobia_name: str
+    trigger_source: str  # что вызвало фобию
+    affected_stats: Dict[str, int]  # какие статы обнулены
+
+
 # ───────────────── Player ─────────────────
-
-
 @dataclass(slots=True)
 class Player:
     name: str
@@ -80,12 +110,27 @@ class Game:
     phase2_round: int = 1
     phase2_current_team: str = "outside"  # "outside" | "bunker"
     phase2_bunker_hp: int = 10
+    phase2_morale: int = 10  # новое
+    phase2_supplies: int = 10  # новое
+    phase2_supplies_countdown: int = 0  # счетчик для поражения от голода
+    phase2_morale_countdown: int = 0  # счетчик для поражения от морали
+
+    # Объекты бункера и эффекты
+    phase2_bunker_objects: Dict[str, BunkerObjectState] = field(default_factory=dict)
+    phase2_team_debuffs: Dict[str, List[DebuffEffect]] = field(
+        default_factory=dict
+    )  # team -> debuffs
+    phase2_player_phobias: Dict[str, PhobiaStatus] = field(
+        default_factory=dict
+    )  # player_id -> phobia
+    phase2_active_statuses: List[str] = field(
+        default_factory=list
+    )  # глобальные статусы (пожар, заражение)
+
     phase2_action_queue: List[Dict[str, Any]] = field(default_factory=list)
     phase2_processed_actions: List[Dict[str, Any]] = field(default_factory=list)
     phase2_current_action_index: int = 0
-    phase2_team_stats: Dict[str, Dict[str, int]] = field(
-        default_factory=dict
-    )  # {team: {stat: value}}
+    phase2_team_stats: Dict[str, Dict[str, int]] = field(default_factory=dict)
 
     # Phase2 results and winner
     phase2_action_log: List[Dict[str, Any]] = field(default_factory=list)
@@ -98,6 +143,14 @@ class Game:
         self.phase2_round = 1
         self.phase2_current_team = "outside"
         self.phase2_bunker_hp = 10
+        self.phase2_morale = 10
+        self.phase2_supplies = 10
+        self.phase2_supplies_countdown = 0
+        self.phase2_morale_countdown = 0
+        self.phase2_bunker_objects.clear()
+        self.phase2_team_debuffs.clear()
+        self.phase2_player_phobias.clear()
+        self.phase2_active_statuses.clear()
         self.phase2_action_queue.clear()
         self.phase2_processed_actions.clear()
         self.phase2_current_action_index = 0

@@ -4,6 +4,8 @@ game_settings:
   starting_bunker_hp: 7
   starting_morale: 10
   starting_supplies: 8
+  supplies_countdown_limit: 2 # сколько ходов можно без припасов
+  morale_countdown_limit: 1 # сколько ходов можно с 0 морали
 
 # Условия победы
 victory_conditions:
@@ -11,10 +13,10 @@ victory_conditions:
     condition: bunker_hp <= 0
     winner: outside
   morale_broken:
-    condition: morale <= 0
+    condition: morale <= 0 AND morale_countdown >= morale_countdown_limit
     winner: outside
   supplies_exhausted:
-    condition: supplies <= 0
+    condition: supplies <= 0 AND supplies_countdown >= supplies_countdown_limit
     winner: outside
   time_limit:
     condition: round > max_rounds
@@ -26,9 +28,30 @@ mechanics:
   team_stat_calculation: sum # sum | average | max
   dice_type: d20
   stat_advantage_threshold: 5 # разница в статах для получения преимущества
+  debuff_duration: 2 # стандартная длительность дебафов
+  phobia_stat_floor: -2 # минимальное значение характеристики при фобии
 
 # Коэффициенты для расчетов
 coefficients:
   base_crisis_chance: 0.2
   stat_advantage_bonus: 2
   group_action_bonus: 0.5 # бонус за совместные действия
+  phobia_penalty_multiplier: 1.0 # множитель штрафа от фобий
+
+# Начальные объекты бункера
+initial_bunker_objects:
+  - id: "generator"
+    name: "Генератор"
+    status: "working"
+  - id: "ventilation"
+    name: "Вентиляционная система"
+    status: "working"
+  - id: "medical_bay"
+    name: "Медпункт"
+    status: "working"
+  - id: "communications"
+    name: "Система связи"
+    status: "working"
+  - id: "water_filter"
+    name: "Фильтр воды"
+    status: "working"

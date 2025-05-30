@@ -5,29 +5,19 @@
   penalty_on_fail:
     bunker_damage: 2
     morale_damage: 1
+  adds_status: []
+  triggers_phobias: ["Клаустрофобия"]
 
-- id: resource_shortage
-  name: Нехватка ресурсов
-  description: "Запасы еды и воды на исходе. Нужно найти новые источники!"
-  important_stats: [ИНТ, ЗДР]
+- id: fire_outbreak
+  name: Пожар
+  description: "В бункере вспыхнул пожар! Нужно срочно его потушить!"
+  important_stats: [СИЛ, ЗДР]
   penalty_on_fail:
-    supplies_damage: 2
-    morale_damage: 1
-
-- id: medical_emergency
-  name: Медицинская помощь
-  description: "Один из обитателей бункера серьезно ранен. Требуется немедленная помощь!"
-  important_stats: [ЭМП, ИНТ]
-  penalty_on_fail:
-    morale_damage: 3
-
-- id: contamination
-  name: Заражение
-  description: "В системе вентиляции обнаружены токсичные вещества!"
-  important_stats: [ТЕХ, ЗДР]
-  penalty_on_fail:
-    bunker_damage: 1
+    bunker_damage: 3
     morale_damage: 2
+    supplies_damage: 1
+  adds_status: ["fire"]
+  triggers_phobias: ["Пирофобия"]
 
 - id: power_failure
   name: Отключение электричества
@@ -36,6 +26,39 @@
   penalty_on_fail:
     bunker_damage: 1
     supplies_damage: 1
+    object_damage: ["generator", "ventilation"]
+  adds_status: ["darkness"]
+  triggers_phobias: ["Боязнь темноты"]
+
+- id: contamination
+  name: Заражение
+  description: "В системе вентиляции обнаружены токсичные вещества!"
+  important_stats: [ТЕХ, ЗДР]
+  penalty_on_fail:
+    bunker_damage: 1
+    morale_damage: 2
+    supplies_damage: 1
+    team_debuff:
+      target: "bunker"
+      effect: "contaminated"
+      stat_penalties: { ЗДР: -3, ТЕХ: -1 }
+      duration: 3
+  adds_status: ["contamination"]
+  triggers_phobias: ["Мизофобия", "Нозофобия"]
+
+- id: medical_emergency
+  name: Медицинская помощь
+  description: "Один из обитателей бункера серьезно ранен. Требуется немедленная помощь!"
+  important_stats: [ЭМП, ИНТ]
+  penalty_on_fail:
+    morale_damage: 3
+    team_debuff:
+      target: "bunker"
+      effect: "panicked"
+      stat_penalties: { ХАР: -2, ЭМП: -2 }
+      duration: 2
+  adds_status: []
+  triggers_phobias: ["Гематофобия", "Танатофобия"]
 
 - id: psychological_breakdown
   name: Психологический срыв
@@ -43,3 +66,25 @@
   important_stats: [ЭМП, ХАР]
   penalty_on_fail:
     morale_damage: 4
+    team_debuff:
+      target: "bunker"
+      effect: "broken"
+      stat_penalties: { ХАР: -3, ЭМП: -3, ИНТ: -1 }
+      duration: 3
+  adds_status: []
+  triggers_phobias: ["Социофобия"]
+
+- id: resource_shortage
+  name: Нехватка ресурсов
+  description: "Запасы еды и воды на исходе. Нужно найти новые источники!"
+  important_stats: [ИНТ, ЗДР]
+  penalty_on_fail:
+    supplies_damage: 3
+    morale_damage: 1
+    team_debuff:
+      target: "bunker"
+      effect: "hungry"
+      stat_penalties: { СИЛ: -2, ЗДР: -2 }
+      duration: 2
+  adds_status: []
+  triggers_phobias: []

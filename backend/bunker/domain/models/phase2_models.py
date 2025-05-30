@@ -1,6 +1,27 @@
 from __future__ import annotations
 from dataclasses import dataclass, field
-from typing import Dict, List, Any, Optional
+from typing import Dict, List, Any, Optional, Union
+from enum import Enum
+
+
+@dataclass(slots=True)
+class ActionRequirement:
+    """Требование к действию"""
+
+    any_of: List[Dict[str, Any]] = field(default_factory=list)  # ИЛИ
+    all_of: List[Dict[str, Any]] = field(default_factory=list)  # И
+    not_having: List[Dict[str, Any]] = field(default_factory=list)  # НЕ ИМЕТЬ
+
+    @classmethod
+    def from_raw(cls, raw: Any) -> "ActionRequirement":
+        if not isinstance(raw, dict):
+            return cls()
+
+        return cls(
+            any_of=raw.get("any_of", []),
+            all_of=raw.get("all_of", []),
+            not_having=raw.get("not_having", []),
+        )
 
 
 @dataclass(slots=True)
@@ -13,7 +34,14 @@ class Phase2ActionDef:
     difficulty: int
     required_stats: List[str]
     stat_weights: Dict[str, float]
+    stat_bonuses: Dict[
+        str, Dict[str, Dict[str, int]]
+    ]  # trait_type -> trait_name -> stat_bonus
+    requirements: ActionRequirement
     effects: Dict[str, Dict[str, Any]]  # success/failure -> effects
+    removes_status: List[str] = field(
+        default_factory=list
+    )  # какие статусы убирает при успехе
 
     @classmethod
     def from_raw(cls, raw: Any) -> "Phase2ActionDef":
@@ -27,7 +55,10 @@ class Phase2ActionDef:
             difficulty=raw.get("difficulty", 10),
             required_stats=raw.get("required_stats", []),
             stat_weights=raw.get("stat_weights", {}),
+            stat_bonuses=raw.get("stat_bonuses", {}),
+            requirements=ActionRequirement.from_raw(raw.get("requirements", {})),
             effects=raw.get("effects", {"success": {}, "failure": {}}),
+            removes_status=raw.get("removes_status", []),
         )
 
 
@@ -40,6 +71,8 @@ class Phase2CrisisDef:
     description: str
     important_stats: List[str]
     penalty_on_fail: Dict[str, Any]
+    adds_status: List[str] = field(default_factory=list)  # какие статусы добавляет
+    triggers_phobias: List[str] = field(default_factory=list)  # какие фобии триггерит
 
     @classmethod
     def from_raw(cls, raw: Any) -> "Phase2CrisisDef":
@@ -52,6 +85,8 @@ class Phase2CrisisDef:
             description=raw.get("description", ""),
             important_stats=raw.get("important_stats", []),
             penalty_on_fail=raw.get("penalty_on_fail", {}),
+            adds_status=raw.get("adds_status", []),
+            triggers_phobias=raw.get("triggers_phobias", []),
         )
 
 
