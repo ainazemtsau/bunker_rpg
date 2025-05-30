@@ -1,0 +1,39 @@
+- name: Радиатор-печь
+  check: { ТЕХ: 12 }
+  tags: [fire]
+
+- name: Медпункт
+  check: { ИНТ: 12, ЭМП: 10 }
+  tags: [medical]
+
+- name: Водяной фильтр
+  check: { ТЕХ: 10 }
+  tags: [water]
+
+- name: Вентиляционная шахта
+  check: { ТЕХ: 13 }
+  tags: [confined]
+
+- name: Генератор
+  check: { ТЕХ: 15 }
+  tags: [darkness]
+
+- name: Склад консервов
+  check: { СИЛ: 10 }
+  tags: [food]
+
+- name: Аккумуляторный блок
+  check: { ТЕХ: 14 }
+  tags: [tech]
+
+- name: Комната отдыха
+  check: { ЭМП: 8 }
+  tags: [social]
+
+- name: Арсенал инструментов
+  check: { ТЕХ: 11 }
+  tags: [engineer]
+
+- name: Душ/санузел
+  check: { ИНТ: 9 }
+  tags: [infection]

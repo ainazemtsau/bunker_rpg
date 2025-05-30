@@ -1,0 +1,47 @@
+- name: Генератор-портация
+  check: { ТЕХ: 15 }
+  tags: [darkness]
+
+- name: Складной байдарочный набор
+  check: { СИЛ: 12 }
+  tags: [water]
+
+- name: Набор хирургических инструментов
+  check: { ИНТ: 14 }
+  tags: [medical]
+
+- name: 50-литровый бак топлива
+  check: { СИЛ: 10 }
+  tags: [fire]
+
+- name: Большой набор LEGO
+  check: { ИНТ: 10 }
+  tags: [mental]
+
+- name: Книга «Выращивание овощей в подвале»
+  check: { ИНТ: 8 }
+  tags: [food]
+
+- name: Карманный проектор
+  check: { ТЕХ: 8 }
+  tags: [media]
+
+- name: 12-стринговая гитара
+  check: { ХАР: 9 }
+  tags: [social]
+
+- name: Набор отмычек
+  check: { ТЕХ: 12 }
+  tags: [engineer]
+
+- name: Спутниковый телефон
+  check: { ТЕХ: 14 }
+  tags: [tech]
+
+- name: Сейф с кодом
+  check: { ИНТ: 11 }
+  tags: [puzzle]
+
+- name: Пивоваренный комплект
+  check: { ТЕХ: 10 }
+  tags: [food]

@@ -1,0 +1,34 @@
+# --- Python ---
+.venv/
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.egg-info/
+*.egg
+.pytest_cache/
+.mypy_cache/
+
+# --- Django / Flask / etc (если надо) ---
+*.log
+*/migrations/**/__pycache__/
+
+# --- Node / React ---
+node_modules/
+# Папки сборки
+build/
+dist/
+.next/
+.turbo/
+.parcel-cache/
+# env-файлы
+.env
+.env.*
+
+# --- VS Code ---
+.vscode/
+*.code-workspace
+
+# --- OS / Editor cruft ---
+.DS_Store
+Thumbs.db

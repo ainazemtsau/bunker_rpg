@@ -1,0 +1,48 @@
+- name: Учитель
+  add: { ХАР: 3, ИНТ: -1 }
+  team_mult: { ИНТ: 1.2 }
+  tags: [mentor]
+
+- name: Плотник
+  add: { СИЛ: 4, ТЕХ: 2 }
+  tags: [craft]
+
+- name: Парамедик
+  add: { ЗДР: 3, ЭМП: 2 }
+  tags: [medical]
+
+- name: Инженер-электрик
+  add: { ТЕХ: 4, ИНТ: 1 }
+  tags: [engineer]
+
+- name: Повар
+  add: { ХАР: 1 }
+  tags: [food]
+
+- name: Астроном
+  add: { ИНТ: 4 }
+  tags: [science]
+
+- name: Дрессировщик животных
+  add: { ЭМП: 3, ХАР: 1 }
+  tags: [social]
+
+- name: Солдат-сапёр
+  add: { СИЛ: 3, ТЕХ: 2 }
+  tags: [combat]
+
+- name: Юрист
+  add: { ИНТ: 2, ХАР: 2 }
+  tags: [social]
+
+- name: Радиоведущий
+  add: { ХАР: 4 }
+  tags: [media]
+
+- name: Агроинженер
+  add: { ИНТ: 2, ТЕХ: 2 }
+  tags: [food, engineer]
+
+- name: IT-админ
+  add: { ИНТ: 3 }
+  tags: [tech]
