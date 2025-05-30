@@ -18,14 +18,24 @@ class GameService:
 
     # ───────────────── Lobby ────────────────────────────────────────
     def create_game(self, host_name: str, sid: str) -> Dict[str, Any]:
+        from pathlib import Path
+        from bunker.core.loader import GameData
+        from bunker.domain.game_init import GameInitializer
+
         host = Player(host_name, sid)
         game = Game(host)
-        eng = GameEngine(game)
+
+        # Create the required dependencies
+        data_dir = Path(r"C:/Users/Zema/bunker-game/backend/data")
+        game_data = GameData(root=data_dir)
+        initializer = GameInitializer(game_data)
+
+        eng = GameEngine(game, initializer)
 
         self._engines[game.id] = eng
         game_repo.add(game)
 
-        return eng.view()  # ← первый snapshot
+        return eng.view()
 
     def join_game(
         self, gid: str, player_name: str, sid: str
