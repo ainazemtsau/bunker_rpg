@@ -1,0 +1,14 @@
+- name: "Инженер-электрик"
+  add: { ТЕХ: 4, ИНТ: 1 }
+  tags: [engineer]
+
+- name: "Парамедик"
+  add: { ЗДР: 3, ЭМП: 2 }
+  tags: [medical]
+
+- name: "Плотник"
+  add: { СИЛ: 4, ТЕХ: 2 }
+  tags: [craft]
+
+- name: "Test Profession"
+  add: { СИЛ: 2 }

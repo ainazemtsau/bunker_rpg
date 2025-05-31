@@ -1,0 +1,286 @@
+- id: fire
+  name: "Пожар"
+  description: "В бункере бушует пожар. Повреждает здания и блокирует действия."
+  severity: "high"
+  duration_type: "until_removed"
+
+  effects:
+    per_round_effects:
+      bunker_hp: -1
+      morale: -1
+
+    team_stats:
+      bunker: { ЗДР: -2, ТЕХ: -1 }
+
+    action_modifiers:
+      - action_id: "repair_bunker"
+        difficulty_modifier: 3
+      - action_id: "search_supplies"
+        blocked: true
+      - action_id: "medical_aid"
+        difficulty_modifier: 2
+
+    bunker_objects:
+      - object_id: "generator"
+        effectiveness: -50
+      - object_id: "ventilation"
+        status_change: "damaged"
+
+    triggers_phobias: ["Пирофобия"]
+
+    player_effects:
+      - type: "stat_penalties"
+        stats: { ЗДР: -1 }
+
+  removal_conditions:
+    - action_id: "extinguish_fire"
+
+  interactions:
+    enhanced_by: ["darkness"]
+    conflicts_with: ["fire_extinguished"]
+
+  ui:
+    icon: "fire"
+    color: "error"
+    notifications:
+      on_apply: "🔥 В бункере вспыхнул пожар!"
+      on_effect: "🔥 Пожар наносит урон каждый раунд"
+      on_remove: "✅ Пожар успешно потушен"
+
+- id: contamination
+  name: "Заражение"
+  description: "Радиоактивное или химическое заражение отравляет обитателей бункера."
+  severity: "high"
+  duration_type: "until_removed"
+
+  effects:
+    per_round_effects:
+      supplies: -1
+      morale: -1
+
+    team_stats:
+      bunker: { ЗДР: -3, ТЕХ: -1 }
+
+    action_modifiers:
+      - action_id: "medical_aid"
+        difficulty_modifier: 5
+      - action_id: "search_supplies"
+        blocked: true
+      - action_id: "repair_bunker"
+        difficulty_modifier: 2
+
+    triggers_phobias: ["Мизофобия", "Нозофобия"]
+
+    player_effects:
+      - type: "stat_penalties"
+        stats: { ЗДР: -2, ЭМП: -1 }
+
+  removal_conditions:
+    - action_id: "decontamination"
+
+  interactions:
+    enhanced_by: ["ventilation_damaged"]
+
+  ui:
+    icon: "contamination"
+    color: "success"
+    notifications:
+      on_apply: "☣️ Обнаружено заражение!"
+      on_effect: "☣️ Заражение отравляет припасы и здоровье"
+      on_remove: "✅ Дезактивация завершена"
+
+- id: darkness
+  name: "Темнота"
+  description: "Отключение электричества затрудняет технические работы."
+  severity: "medium"
+  duration_type: "until_removed"
+
+  effects:
+    team_stats:
+      bunker: { ТЕХ: -3, ИНТ: -1 }
+
+    action_modifiers:
+      - action_id: "repair_bunker"
+        difficulty_modifier: 4
+      - action_id: "fortify"
+        difficulty_modifier: 3
+
+    bunker_objects:
+      - object_id: "communications"
+        effectiveness: -70
+      - object_id: "laboratory"
+        effectiveness: -50
+
+    triggers_phobias: ["Боязнь темноты"]
+
+  removal_conditions:
+    - action_id: "restore_power"
+
+  interactions:
+    enhances: ["fire"]
+
+  ui:
+    icon: "darkness"
+    color: "secondary"
+    notifications:
+      on_apply: "🌑 Электричество отключено!"
+      on_effect: "🌑 Темнота затрудняет работу"
+      on_remove: "💡 Электричество восстановлено"
+
+- id: structural_weakness
+  name: "Структурные повреждения"
+  description: "Критические повреждения несущих конструкций."
+  severity: "high"
+  duration_type: "until_removed"
+
+  effects:
+    per_round_effects:
+      bunker_hp: -1
+
+    action_modifiers:
+      - action_id: "fortify"
+        blocked: true
+      - action_id: "repair_bunker"
+        difficulty_modifier: 2
+
+    team_stats:
+      bunker: { СИЛ: -2 }
+
+    triggers_phobias: ["Клаустрофобия"]
+
+  removal_conditions:
+    - action_id: "structural_repair"
+
+  ui:
+    icon: "structural"
+    color: "warning"
+    notifications:
+      on_apply: "🏗️ Обнаружены критические повреждения!"
+      on_effect: "🏗️ Конструкции продолжают разрушаться"
+      on_remove: "🔧 Структура восстановлена"
+
+- id: fortified
+  name: "Укреплен"
+  description: "Бункер дополнительно укреплен против атак."
+  severity: "positive"
+  duration_type: "rounds"
+  duration_value: 3
+
+  effects:
+    team_stats:
+      bunker: { СИЛ: +2, ТЕХ: +1 }
+
+    action_modifiers:
+      - action_id: "attack_bunker"
+        difficulty_modifier: 3
+
+  ui:
+    icon: "shield"
+    color: "primary"
+    notifications:
+      on_apply: "🛡️ Бункер укреплен!"
+      on_effect: "🛡️ Укрепления держатся"
+      on_remove: "⚠️ Укрепления разрушились"
+
+- id: high_morale
+  name: "Высокий боевой дух"
+  description: "Команда воодушевлена и готова к испытаниям."
+  severity: "positive"
+  duration_type: "rounds"
+  duration_value: 2
+
+  effects:
+    team_stats:
+      bunker: { ХАР: +3, ЭМП: +2 }
+
+    action_modifiers:
+      - action_id: "psychological_warfare"
+        difficulty_modifier: 4
+
+    player_effects:
+      - type: "phobia_immunity"
+
+  ui:
+    icon: "celebration"
+    color: "success"
+    notifications:
+      on_apply: "🎉 Боевой дух команды поднят!"
+      on_effect: "💪 Команда полна решимости"
+      on_remove: "😐 Воодушевление прошло"
+
+- id: panic_attack
+  name: "Приступ паники"
+  description: "Игрок охвачен паникой и не может функционировать."
+  severity: "critical"
+  duration_type: "rounds"
+  duration_value: 2
+
+  effects:
+    player_effects:
+      - type: "make_useless"
+        target_player: true
+
+  removal_conditions:
+    - action_id: "treat_phobia"
+
+  ui:
+    icon: "panic"
+    color: "error"
+    notifications:
+      on_apply: "😱 Игрок охвачен паникой!"
+      on_effect: "😰 Паника продолжается"
+      on_remove: "😌 Игрок пришел в себя"
+
+- id: psychological_pressure
+  name: "Психологическое давление"
+  description: "Постоянные угрозы и провокации снаружи давят на психику."
+  severity: "medium"
+  duration_type: "rounds"
+  duration_value: 3
+
+  effects:
+    per_round_effects:
+      morale: -1
+
+    team_stats:
+      bunker: { ЭМП: -2, ХАР: -1 }
+
+    action_modifiers:
+      - action_id: "boost_morale_advanced"
+        difficulty_modifier: 3
+
+    triggers_phobias: ["Социофобия"]
+
+  removal_conditions:
+    - action_id: "boost_morale_advanced"
+
+  ui:
+    icon: "psychology"
+    color: "warning"
+    notifications:
+      on_apply: "😰 Команда под психологическим давлением"
+      on_effect: "😰 Давление продолжает влиять на мораль"
+      on_remove: "💪 Команда преодолела давление"
+
+- id: fire_extinguished
+  name: "Пожар потушен"
+  description: "Пожар успешно ликвидирован, система пожаротушения активна."
+  severity: "positive"
+  duration_type: "rounds"
+  duration_value: 2
+
+  effects:
+    action_modifiers:
+      - action_id: "sabotage_fire"
+        blocked: true
+
+  interactions:
+    conflicts_with: ["fire"]
+
+  ui:
+    icon: "fire_extinguisher"
+    color: "success"
+    notifications:
+      on_apply: "🚒 Система пожаротушения активна"
+      on_effect: "✅ Защита от огня действует"
+      on_remove: "⚠️ Защита от огня прекратилась"

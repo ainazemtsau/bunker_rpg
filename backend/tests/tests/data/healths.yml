@@ -1,0 +1,5 @@
+- name: "Здоров"
+  add: { ЗДР: 2 }
+
+- name: "Test Health"
+  add: { ЗДР: 1 }

@@ -39,13 +39,19 @@ class GameInitializer:
     def setup_new_game(self, game: Game) -> None:
         self._assign_characters(game)
         self._assign_bunker_cards(game)
-        # Убрали: game.crises = list(self._data.crises.values())
 
     def _assign_characters(self, game: Game) -> None:
         n = len(game.players)
-        pools = {
-            attr: list(getattr(self._data, PLURAL_MAP[attr])) for attr in TRAIT_ATTRS
-        }
+        pools = {}
+
+        for attr in TRAIT_ATTRS:
+            collection = getattr(self._data, PLURAL_MAP[attr])
+            # ← ИСПРАВЛЕНИЕ: проверяем тип коллекции
+            if isinstance(collection, dict):
+                pools[attr] = list(collection.values())
+            else:
+                pools[attr] = list(collection)
+
         for attr, pool in pools.items():
             if len(pool) < n:
                 raise ValueError(
@@ -59,12 +65,14 @@ class GameInitializer:
             tpl = {attr: sampled[attr][i] for attr in TRAIT_ATTRS}
             templates.append(tpl)
 
+        # ← ИСПРАВЛЕНИЕ: код должен быть ВНУТРИ метода с правильным отступом
         self._rng.shuffle(templates)
         for pid, tpl in zip(game.players, templates):
             game.characters[pid] = Character(traits=tpl)
 
     def _assign_bunker_cards(self, game: Game) -> None:
-        cards = self._data.bunker_objects
+        # ← ИСПРАВЛЕНИЕ: берем значения из словаря
+        cards = list(self._data.bunker_objects.values())
         if len(cards) < 5:
             raise ValueError("Need at least 5 bunker objects")
         game.bunker_cards = self._rng.sample(cards, k=5)

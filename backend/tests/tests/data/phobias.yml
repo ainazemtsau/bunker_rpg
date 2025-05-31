@@ -1,0 +1,13 @@
+- name: "Пирофобия"
+  add: {}
+  triggers: [fire]
+  on_trigger:
+    penalty: { СИЛ: -2 }
+    status: hindrance
+
+- name: "Боязнь темноты"
+  add: { ЭМП: -2 }
+  triggers: [darkness]
+  on_trigger:
+    penalty: { ИНТ: -4, ХАР: -2 }
+    status: panic

@@ -28,6 +28,7 @@ from .types import (
     CrisisResult,
 )
 from .action_filter import ActionFilter
+from .status_manager import StatusManager
 
 
 class Phase2Engine:
@@ -48,6 +49,7 @@ class Phase2Engine:
         self._bunker_bonus_calc = BunkerObjectBonusCalculator(
             game, game_data.bunker_objects
         )
+        self._status_manager = StatusManager(game, game_data)
 
     def initialize_phase2(self) -> None:
         """Инициализация Phase2"""
@@ -81,6 +83,8 @@ class Phase2Engine:
         # Инициализация команд
         self._setup_teams()
         self._calculate_team_stats()
+        if not hasattr(self.game, "phase2_active_statuses_detailed"):
+            self.game.phase2_active_statuses_detailed = {}
 
     def _setup_bunker_objects(self) -> None:
         """Настройка начальных объектов бункера"""
@@ -134,13 +138,13 @@ class Phase2Engine:
         print(f"Teams setup: bunker={bunker_players}, outside={outside_players}")
 
     def _calculate_team_stats(self) -> None:
-        """Расчет характеристик команд с учетом дебафов, фобий и объектов"""
+        """Расчет характеристик команд с учетом дебафов, фобий, объектов И СТАТУСОВ"""
         stats = {}
 
         for team_name, team_state in self._team_states.items():
             team_stats = {"ЗДР": 0, "СИЛ": 0, "ИНТ": 0, "ТЕХ": 0, "ЭМП": 0, "ХАР": 0}
 
-            # Базовые статы игроков
+            # Базовые статы игроков (существующий код)
             for player_id in team_state.players:
                 if player_id in self.game.characters:
                     char_stats = self.game.characters[player_id].aggregate_stats()
@@ -160,23 +164,29 @@ class Phase2Engine:
                         if stat in team_stats:
                             team_stats[stat] += value
 
-            # Применяем командные дебафы
+            # Применяем командные дебафы (существующий код)
             if team_name in self.game.phase2_team_debuffs:
                 for debuff in self.game.phase2_team_debuffs[team_name]:
                     for stat, penalty in debuff.stat_penalties.items():
                         if stat in team_stats:
-                            team_stats[stat] += penalty  # penalty уже отрицательный
+                            team_stats[stat] += penalty
 
-            # НОВОЕ: Применяем бонусы от объектов бункера (только для команды в бункере)
+            # Применяем бонусы от объектов бункера (существующий код)
             if team_name == "bunker":
                 team_players = set(team_state.players)
                 object_bonuses = self._bunker_bonus_calc.calculate_team_bonuses(
                     team_players
                 )
-
                 for stat, bonus in object_bonuses.items():
                     if stat in team_stats:
                         team_stats[stat] += bonus
+
+            # ← НОВОЕ: Применяем модификаторы от статусов
+            status_modifiers = self._status_manager.get_team_stat_modifiers()
+            if team_name in status_modifiers:
+                for stat, modifier in status_modifiers[team_name].items():
+                    if stat in team_stats:
+                        team_stats[stat] += modifier
 
             stats[team_name] = team_stats
 
@@ -316,7 +326,7 @@ class Phase2Engine:
         return self.game.phase2_action_queue[self.game.phase2_current_action_index]
 
     def process_current_action(self) -> ActionResult:
-        """Обработать текущее действие"""
+        """Обработать текущее действие С УЧЕТОМ СТАТУСОВ"""
         if self.game.phase2_current_action_index >= len(self.game.phase2_action_queue):
             raise ValueError("No actions to process")
 
@@ -325,15 +335,53 @@ class Phase2Engine:
         ]
         action_def = self.data.phase2_actions[action_data["action_type"]]
 
-        # Расчет статистик участников с бонусами от черт
+        # ← НОВОЕ: Проверяем модификаторы от статусов
+        status_modifiers = self._status_manager.get_action_modifiers(
+            action_data["action_type"]
+        )
+
+        if status_modifiers["blocked"]:
+            # Действие заблокировано статусами
+            result = ActionResult(
+                success=False,
+                participants=action_data["participants"],
+                action_type=Phase2ActionType(action_data["action_type"]),
+                roll_result=0,
+                combined_stats=0,
+                difficulty=action_def.difficulty,
+                effects={"blocked_by_statuses": status_modifiers["blocking_statuses"]},
+            )
+
+            self.game.phase2_processed_actions.append(
+                {
+                    "action_type": action_data["action_type"],
+                    "participants": action_data["participants"],
+                    "blocked": True,
+                    "blocking_statuses": status_modifiers["blocking_statuses"],
+                }
+            )
+
+            self.game.phase2_current_action_index += 1
+            return result
+
+        # Расчет статистик с учетом модификаторов статусов
         combined_stats = self._calculate_action_stats_with_bonuses(
             action_data["participants"], action_def
         )
 
+        # Применяем модификаторы эффективности от статусов
+        combined_stats = int(combined_stats * status_modifiers["effectiveness"])
+
         # Бросок кубика
         roll = self.rng.randint(1, 20)
+
+        # Применяем модификаторы сложности от статусов
+        modified_difficulty = (
+            action_def.difficulty + status_modifiers["difficulty_modifier"]
+        )
+
         total = roll + combined_stats
-        success = total >= action_def.difficulty
+        success = total >= modified_difficulty
 
         # Создание результата
         result = ActionResult(
@@ -342,41 +390,55 @@ class Phase2Engine:
             action_type=Phase2ActionType(action_data["action_type"]),
             roll_result=roll,
             combined_stats=combined_stats,
-            difficulty=action_def.difficulty,
+            difficulty=modified_difficulty,
             effects={},
         )
 
-        # Применение эффектов
+        # Применение эффектов (существующий код + проверка снятия статусов)
         if success:
             effects = action_def.effects.get("success", {})
             self._apply_action_effects(effects, result, action_def)
+
+            # ← НОВОЕ: Проверяем снятие статусов
+            self._check_status_removal(action_data["action_type"])
         else:
             effects = action_def.effects.get("failure", {})
             self._apply_action_effects(effects, result, action_def)
 
-            # Проверка на кризис для команды бункера
+            # Проверка на кризис (существующий код)
             if action_def.team == "bunker" and "crisis_trigger" in effects:
                 crisis_id = effects["crisis_trigger"]
                 result.crisis_triggered = crisis_id
                 self._current_crisis = self._create_crisis_event(crisis_id)
 
-        # Сохраняем результат
+        # Сохраняем результат (существующий код)
         self.game.phase2_processed_actions.append(
             {
                 "action_type": action_data["action_type"],
                 "participants": action_data["participants"],
                 "roll": roll,
                 "combined_stats": combined_stats,
-                "difficulty": action_def.difficulty,
+                "difficulty": modified_difficulty,
                 "success": success,
                 "effects": result.effects,
+                "status_modifiers": status_modifiers,
                 "crisis_triggered": result.crisis_triggered,
             }
         )
 
         self.game.phase2_current_action_index += 1
-
         return result
+
+    def _check_status_removal(self, action_id: str) -> List[str]:
+        """Проверить и снять статусы при успешном действии"""
+        removed_statuses = []
+
+        for status_id in list(self.game.phase2_active_statuses):
+            if self._status_manager.can_remove_status(status_id, action_id):
+                self._status_manager.remove_status(status_id)
+                removed_statuses.append(status_id)
+
+        return removed_statuses
 
     def _calculate_action_stats_with_bonuses(
         self, participants: List[str], action_def: Phase2ActionDef
@@ -422,12 +484,9 @@ class Phase2Engine:
     def _apply_action_effects(
         self, effects: Dict[str, Any], result: ActionResult, action_def: Phase2ActionDef
     ) -> None:
-        """Применить эффекты действия"""
+        """Применить эффекты действия С ПОДДЕРЖКОЙ СТАТУСОВ"""
         print(f"\n--- Applying action effects ---")
         print(f"Effects to apply: {effects}")
-        print(
-            f"Before - HP: {self.game.phase2_bunker_hp}, Morale: {self.game.phase2_morale}, Supplies: {self.game.phase2_supplies}"
-        )
 
         result.effects = effects.copy()
 
@@ -479,61 +538,70 @@ class Phase2Engine:
             self.game.phase2_supplies = min(max_supplies, self.game.phase2_supplies)
             print(f"New supplies: {self.game.phase2_supplies}")
 
-            # Повреждение объектов
-            if "object_damage" in effects:
-                for obj_id in effects["object_damage"]:
-                    if obj_id in self.game.phase2_bunker_objects:
-                        self.game.phase2_bunker_objects[obj_id].status = "damaged"
-
-            # Ремонт объектов
-            if "repair_object" in effects:
-                obj_id = effects["repair_object"]
+        # Повреждение объектов
+        if "object_damage" in effects:
+            for obj_id in effects["object_damage"]:
                 if obj_id in self.game.phase2_bunker_objects:
-                    self.game.phase2_bunker_objects[obj_id].status = "working"
+                    self.game.phase2_bunker_objects[obj_id].status = "damaged"
 
-            # Командные дебафы
-            if "team_debuff" in effects:
-                debuff_data = effects["team_debuff"]
-                target_team = debuff_data["target"]
+        # Ремонт объектов
+        if "repair_object" in effects:
+            obj_id = effects["repair_object"]
+            if obj_id in self.game.phase2_bunker_objects:
+                self.game.phase2_bunker_objects[obj_id].status = "working"
 
-                debuff = DebuffEffect(
-                    effect_id=debuff_data["effect"],
-                    name=debuff_data["effect"],
-                    stat_penalties=debuff_data["stat_penalties"],
-                    remaining_rounds=debuff_data["duration"],
-                    source=f"action_{action_def.id}",
-                )
+        # Командные дебафы
+        if "team_debuff" in effects:
+            debuff_data = effects["team_debuff"]
+            target_team = debuff_data["target"]
 
-                if target_team not in self.game.phase2_team_debuffs:
-                    self.game.phase2_team_debuffs[target_team] = []
-                self.game.phase2_team_debuffs[target_team].append(debuff)
-
-            # Снятие дебафов
-            if "remove_team_debuff" in effects:
-                debuff_name = effects["remove_team_debuff"]
-                for team in self.game.phase2_team_debuffs:
-                    self.game.phase2_team_debuffs[team] = [
-                        d
-                        for d in self.game.phase2_team_debuffs[team]
-                        if d.effect_id != debuff_name
-                    ]
-
-            # Снятие статусов
-            if "remove_status" in effects:
-                status = effects["remove_status"]
-                if status in self.game.phase2_active_statuses:
-                    self.game.phase2_active_statuses.remove(status)
-
-            # Лечение фобии
-            if "cure_phobia" in effects and effects["cure_phobia"]:
-                # Убираем фобию у одного из участников (первого с фобией)
-                for participant in result.participants:
-                    if participant in self.game.phase2_player_phobias:
-                        del self.game.phase2_player_phobias[participant]
-                        break
-            print(
-                f"After - HP: {self.game.phase2_bunker_hp}, Morale: {self.game.phase2_morale}, Supplies: {self.game.phase2_supplies}"
+            debuff = DebuffEffect(
+                effect_id=debuff_data["effect"],
+                name=debuff_data["effect"],
+                stat_penalties=debuff_data["stat_penalties"],
+                remaining_rounds=debuff_data["duration"],
+                source=f"action_{action_def.id}",
             )
+
+        if target_team not in self.game.phase2_team_debuffs:
+            self.game.phase2_team_debuffs[target_team] = []
+        self.game.phase2_team_debuffs[target_team].append(debuff)
+
+        # Снятие дебафов
+        if "remove_team_debuff" in effects:
+            debuff_name = effects["remove_team_debuff"]
+            for team in self.game.phase2_team_debuffs:
+                self.game.phase2_team_debuffs[team] = [
+                    d
+                    for d in self.game.phase2_team_debuffs[team]
+                    if d.effect_id != debuff_name
+                ]
+
+        if "apply_status" in effects:
+            status_id = effects["apply_status"]
+            success = self._status_manager.apply_status(
+                status_id, f"action_{action_def.id}"
+            )
+            result.effects["status_applied"] = status_id if success else None
+
+        # ← НОВОЕ: Снятие статусов
+        if "remove_status" in effects:
+            status_id = effects["remove_status"]
+            success = self._status_manager.remove_status(status_id)
+            result.effects["status_removed"] = status_id if success else None
+
+        # ← НОВОЕ: Лечение фобии
+        if "cure_phobia" in effects and effects["cure_phobia"]:
+            cured_players = []
+            for participant in result.participants:
+                if participant in self.game.phase2_player_phobias:
+                    del self.game.phase2_player_phobias[participant]
+                    cured_players.append(participant)
+            result.effects["phobias_cured"] = cured_players
+        self._calculate_team_stats()
+        print(
+            f"After - HP: {self.game.phase2_bunker_hp}, Morale: {self.game.phase2_morale}, Supplies: {self.game.phase2_supplies}"
+        )
 
     def _create_crisis_event(self, crisis_id: str) -> CrisisEvent:
         """Создать событие кризиса с мини-игрой"""
@@ -706,8 +774,25 @@ class Phase2Engine:
 
         # Если переходим к новому раунду - проверяем условия истощения ресурсов
         if self.game.phase2_current_team == "bunker":
+            status_effects = self._status_manager.apply_per_round_effects()
             print("End of round - checking resource depletion...")
-
+            if status_effects:
+                self.game.phase2_action_log.append(
+                    {
+                        "type": "status_effects",
+                        "round": self.game.phase2_round,
+                        "effects": status_effects,
+                    }
+                )
+            expired_statuses = self._status_manager.update_statuses_for_round()
+            if expired_statuses:
+                self.game.phase2_action_log.append(
+                    {
+                        "type": "statuses_expired",
+                        "round": self.game.phase2_round,
+                        "expired": expired_statuses,
+                    }
+                )
             # Мораль упала до 0 - увеличиваем счетчик
             if self.game.phase2_morale <= 0:
                 self.game.phase2_morale_countdown += 1
@@ -767,6 +852,25 @@ class Phase2Engine:
         self._calculate_team_stats()
 
         print(f"Turn finished. New team: {self.game.phase2_current_team}")
+
+    def apply_status_from_crisis(self, crisis_id: str) -> None:
+        """Применить статус от кризиса"""
+        crisis_def = self.data.phase2_crises.get(crisis_id)
+        if not crisis_def:
+            return
+
+        # Ищем какой статус добавляет этот кризис
+        # Это можно настроить в crisis.yml или в отдельном маппинге
+        crisis_to_status = {
+            "fire_outbreak": "fire",
+            "contamination": "contamination",
+            "power_failure": "darkness",
+            "structural_damage": "structural_weakness",
+        }
+
+        status_id = crisis_to_status.get(crisis_id)
+        if status_id:
+            self._status_manager.apply_status(status_id, f"crisis_{crisis_id}")
 
     def _update_debuffs(self) -> None:
         """Обновить дебафы (уменьшить длительность, удалить истекшие)"""

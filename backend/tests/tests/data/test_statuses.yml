@@ -1,0 +1,104 @@
+- id: test_fire
+  name: "Тестовый пожар"
+  description: "Пожар для тестов"
+  severity: "high"
+  duration_type: "until_removed"
+
+  effects:
+    per_round_effects:
+      bunker_hp: -1
+      morale: -1
+
+    team_stats:
+      bunker: { ЗДР: -2, ТЕХ: -1 }
+
+    action_modifiers:
+      - action_id: "repair_bunker"
+        difficulty_modifier: 3
+      - action_id: "search_supplies"
+        blocked: true
+
+    bunker_objects:
+      - object_id: "generator"
+        effectiveness: -50
+      - object_id: "ventilation"
+        status_change: "damaged"
+
+    triggers_phobias: ["Пирофобия"]
+
+  removal_conditions:
+    - action_id: "extinguish_fire"
+
+  interactions:
+    enhanced_by: ["darkness"]
+    conflicts_with: ["fire_extinguished"]
+
+  ui:
+    icon: "fire"
+    color: "error"
+    notifications:
+      on_apply: "🔥 Тестовый пожар!"
+      on_effect: "🔥 Горит!"
+      on_remove: "✅ Потушен!"
+
+- id: test_darkness
+  name: "Тестовая темнота"
+  description: "Темнота для тестов"
+  severity: "medium"
+  duration_type: "rounds"
+  duration_value: 3
+
+  effects:
+    team_stats:
+      bunker: { ТЕХ: -3 }
+
+    action_modifiers:
+      - action_id: "repair_bunker"
+        difficulty_modifier: 2
+
+  removal_conditions:
+    - action_id: "restore_power"
+
+  interactions:
+    enhances: ["test_fire"]
+
+  ui:
+    icon: "darkness"
+    color: "secondary"
+
+- id: test_panic
+  name: "Тестовая паника"
+  description: "Паника для тестов make_useless"
+  severity: "critical"
+  duration_type: "rounds"
+  duration_value: 2
+
+  effects:
+    player_effects:
+      - type: "make_useless"
+        target_player: true
+
+  removal_conditions:
+    - action_id: "treat_phobia"
+
+  ui:
+    icon: "panic"
+    color: "error"
+
+- id: test_positive
+  name: "Тестовый позитивный статус"
+  description: "Позитивный статус для тестов"
+  severity: "positive"
+  duration_type: "rounds"
+  duration_value: 2
+
+  effects:
+    team_stats:
+      bunker: { ХАР: +3 }
+
+    player_effects:
+      - type: "phobia_immunity"
+
+  ui:
+    icon: "shield"
+    color: "success"

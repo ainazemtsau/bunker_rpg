@@ -11,6 +11,7 @@ from bunker.domain.models.phase2_models import (
     Phase2Config,
     MiniGameDef,
 )
+from bunker.domain.models.status_models import StatusDef
 
 LOAD_MAP: dict[str, Callable[[Any], Any]] = {
     "professions": Trait.from_raw,
@@ -25,10 +26,11 @@ LOAD_MAP: dict[str, Callable[[Any], Any]] = {
     "phase2_actions": Phase2ActionDef.from_raw,
     "phase2_crises": Phase2CrisisDef.from_raw,
     "mini_games": MiniGameDef.from_raw,
+    "phase2_config": Phase2Config.from_raw,
+    "statuses": StatusDef.from_raw,
 }
 
 BASE_FILES = {k: f"{k}.yml" for k in LOAD_MAP.keys()}
-BASE_FILES["phase2_config"] = "phase2_config.yml"
 
 
 def load_any(path: Path) -> list[Any]:
@@ -44,12 +46,26 @@ class GameData:
 
         for name, factory in LOAD_MAP.items():
             raw = load_any(root / BASE_FILES[name])
+
+            # ← ИСПРАВЛЕНИЕ для phase2_config (это не список)
+            if name == "phase2_config":
+                setattr(self, name, factory(raw))
+                continue
+
             records = [factory(rec) for rec in raw]
-            # все наши коллекции (professions, crises, bunker_objects и т.д.)—
-            # это списки, кроме тех, что мы хотим по id.
-            if name in ("crises", "irl_games", "actions"):
+
+            # ← ЧЕТКО ОПРЕДЕЛЯЕМ какие коллекции должны быть словарями
+            dict_collections = {
+                "bunker_objects",
+                "phase2_actions",
+                "phase2_crises",
+                "mini_games",
+                "statuses",
+            }
+
+            if name in dict_collections:
                 # словари по ключу .id
                 setattr(self, name, {r.id: r for r in records})
             else:
-                # просто список
+                # просто список (professions, hobbies, etc)
                 setattr(self, name, records)

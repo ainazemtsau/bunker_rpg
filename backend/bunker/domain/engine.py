@@ -271,23 +271,51 @@ class GameEngine:
         return {}
 
     def _get_phase2_view(self) -> Dict[str, Any]:
-        """Получить представление Phase2"""
+        """Получить представление Phase2 С ПОЛНОЙ ИНФОРМАЦИЕЙ О СТАТУСАХ"""
         if not self._phase2_engine:
             return {"phase2": {}}
 
         current_player = self._phase2_engine.get_current_player()
         available_actions = []
 
-        bunker_objects = {}
-        if self._phase2_engine:
-            bunker_objects = self._phase2_engine.get_bunker_objects_details()
-
+        # Получаем доступные действия С УЧЕТОМ СТАТУСОВ
         if current_player:
             actions = self._phase2_engine.get_available_actions_for_player(
                 current_player
             )
-            available_actions = [{"id": a.id, "name": a.name} for a in actions]
+            available_actions = []
 
+            for action in actions:
+                # Проверяем модификаторы от статусов
+                status_mods = self._phase2_engine._status_manager.get_action_modifiers(
+                    action.id
+                )
+
+                action_data = {
+                    "id": action.id,
+                    "name": action.name,
+                    "difficulty": action.difficulty,
+                    "stat_weights": action.stat_weights,
+                }
+
+                # Добавляем информацию о влиянии статусов
+                if status_mods["blocked"]:
+                    action_data["blocked"] = True
+                    action_data["blocking_statuses"] = status_mods["blocking_statuses"]
+                elif status_mods["difficulty_modifier"] != 0:
+                    action_data["modified_difficulty"] = (
+                        action.difficulty + status_mods["difficulty_modifier"]
+                    )
+                    action_data["difficulty_modifier"] = status_mods[
+                        "difficulty_modifier"
+                    ]
+
+                if status_mods["effectiveness"] != 1.0:
+                    action_data["effectiveness_modifier"] = status_mods["effectiveness"]
+
+                available_actions.append(action_data)
+
+        # Получаем кризис
         crisis = self._phase2_engine.get_current_crisis()
         crisis_data = None
         if crisis:
@@ -319,11 +347,6 @@ class GameEngine:
                 "usable": obj_state.is_usable(),
             }
 
-        if not bunker_objects:
-            print("WARNING: No bunker objects found in game state!")
-        else:
-            print(f"Bunker objects in view: {list(bunker_objects.keys())}")
-
         # Собираем информацию о дебафах
         team_debuffs = {}
         for team, debuffs in self.game.phase2_team_debuffs.items():
@@ -346,6 +369,11 @@ class GameEngine:
                 "affected_stats": phobia.affected_stats,
             }
 
+        # ← НОВОЕ: Получаем полную информацию о статусах
+        active_statuses_full = (
+            self._phase2_engine._status_manager.get_statuses_for_api()
+        )
+
         return {
             "phase2": {
                 "round": self.game.phase2_round,
@@ -365,11 +393,10 @@ class GameEngine:
                 "team_stats": self.game.phase2_team_stats,
                 "team_debuffs": team_debuffs,
                 "active_phobias": active_phobias,
-                "active_statuses": self.game.phase2_active_statuses,
+                "active_statuses": active_statuses_full,  # ← НОВОЕ: полная информация
                 "bunker_objects": bunker_objects,
                 "action_log": self.game.phase2_action_log,
                 "winner": self.game.winner,
-                "bunker_objects": bunker_objects,
             }
         }
 

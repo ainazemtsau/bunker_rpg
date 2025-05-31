@@ -1,0 +1,6 @@
+- name: "Лидер"
+  add: { ХАР: 4 }
+  team_mult: { ХАР: 1.1 }
+
+- name: "Test Personality"
+  add: { ХАР: 1 }

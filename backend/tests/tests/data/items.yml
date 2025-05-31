@@ -1,0 +1,10 @@
+- name: "Арсенал инструментов"
+  check: { ТЕХ: 12 }
+  tags: [engineer]
+
+- name: "Набор хирургических инструментов"
+  check: { ИНТ: 14 }
+  tags: [medical]
+
+- name: "Test Item"
+  add: { ТЕХ: 1 }

@@ -150,7 +150,12 @@ class ActionFilter:
                 # Для действий лечения фобий - должен быть хотя бы один игрок с фобией в команде
                 if req_value and not self._has_team_member_with_phobia(player_id):
                     return False
-
+            elif req_type == "active_status":
+                if not self._check_active_status_requirement(req_value):
+                    return False
+            elif req_type == "status_not_active":
+                if self._check_active_status_requirement(req_value):
+                    return False
         return True
 
     def _check_trait_requirement(
