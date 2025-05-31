@@ -4,21 +4,7 @@ from typing import Dict, List, Any, Optional
 from enum import Enum
 
 
-class Phase2ActionType(Enum):
-    # Outside team actions
-    ATTACK_BUNKER = "attack_bunker"
-    SABOTAGE = "sabotage_systems"
-    PSYCHOLOGICAL_WARFARE = "psychological_warfare"
-
-    # Bunker team actions
-    REPAIR_BUNKER = "repair_bunker"
-    FORTIFY = "fortify"
-    MEDICAL_AID = "medical_aid"
-    SEARCH_SUPPLIES = "search_supplies"
-    BOOST_MORALE = "boost_morale"
-    REPAIR_GENERATOR = "repair_generator"
-    EXTINGUISH_FIRE = "extinguish_fire"
-    TREAT_PHOBIA = "treat_phobia"
+Phase2ActionType = str
 
 
 class CrisisResult(Enum):

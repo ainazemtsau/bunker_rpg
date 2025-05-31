@@ -206,7 +206,10 @@ def test_full_game_and_phase2_flow(game_data: GameData, initializer: GameInitial
             eng.execute(GameAction(type=ActionType.PROCESS_ACTION))
             continue
 
-        # Завершение хода команды
+        print("Checking if team turn is complete...")
+        print(
+            f"Team turn complete: {phase2_data.get('team_turn_complete')}, Action queue length: {len(phase2_data.get('action_queue', []))}"
+        )
         if (
             phase2_data.get("team_turn_complete")
             and len(phase2_data.get("action_queue", [])) == 0
@@ -217,6 +220,8 @@ def test_full_game_and_phase2_flow(game_data: GameData, initializer: GameInitial
 
         # Ход игрока
         current_player = phase2_data.get("current_player")
+        print(f"Current player: {current_player}")
+        print(phase2_data.phase2_data.get("available_actions", []))
         if current_player:
             available_actions = phase2_data.get("available_actions", [])
 
@@ -231,7 +236,7 @@ def test_full_game_and_phase2_flow(game_data: GameData, initializer: GameInitial
             if phase2_data["current_team"] == "outside":
                 # Команда снаружи атакует или саботирует
                 preferred_actions = [
-                    "attack_bunker",
+                    "chemical_attack",
                     "sabotage_systems",
                     "psychological_warfare",
                 ]
@@ -256,7 +261,9 @@ def test_full_game_and_phase2_flow(game_data: GameData, initializer: GameInitial
                 if preferred in available_ids:
                     action_id = preferred
                     break
-
+            print("Available actions:", available_ids)
+            print("Preferred actions:", preferred_actions)
+            print(f"Chosen action: {action_id}")
             # Если не нашли предпочтительное - берем первое доступное
             if not action_id and available_actions:
                 action_id = available_actions[0]["id"]

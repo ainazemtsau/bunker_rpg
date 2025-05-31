@@ -217,7 +217,7 @@ def test_action_grouping(setup_phase2):
             type=ActionType.MAKE_ACTION,
             payload={
                 "player_id": current_player,
-                "action_id": "attack_bunker",
+                "action_id": "chemical_attack",
                 "params": {},
             },
         )
@@ -226,7 +226,7 @@ def test_action_grouping(setup_phase2):
     # Проверяем что действие добавилось в очередь
     view = eng.view()
     assert len(view["phase2"]["action_queue"]) == 1
-    assert view["phase2"]["action_queue"][0]["action_type"] == "attack_bunker"
+    assert view["phase2"]["action_queue"][0]["action_type"] == "chemical_attack"
     assert len(view["phase2"]["action_queue"][0]["participants"]) == 1
     assert current_player in view["phase2"]["action_queue"][0]["participants"]
 
@@ -248,7 +248,7 @@ def test_action_grouping(setup_phase2):
                 type=ActionType.MAKE_ACTION,
                 payload={
                     "player_id": next_player,
-                    "action_id": "attack_bunker",
+                    "action_id": "chemical_attack",
                     "params": {},
                 },
             )

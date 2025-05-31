@@ -249,18 +249,20 @@ class Phase2Engine:
         self, player_id: str, action_id: str, params: Dict[str, Any] = None
     ) -> bool:
         """Добавить действие игрока в очередь"""
+        print(f"\n--- Adding player action for action_id - {action_id}---")
         current_team = self._team_states.get(self.game.phase2_current_team)
         if not current_team or current_team.get_current_player() != player_id:
             return False
 
         # Проверяем доступность действия для игрока
         available_actions = self.get_available_actions_for_player(player_id)
+        print("Available actions for player:", [a.id for a in available_actions])
         action_def = None
         for action in available_actions:
             if action.id == action_id:
                 action_def = action
                 break
-
+        print(f"Selected action: {action_id} (found: {action_def is not None})")
         if not action_def:
             return False
 
@@ -286,7 +288,7 @@ class Phase2Engine:
         """Обновить очередь действий, группируя одинаковые"""
         # Ищем существующую группу с таким же действием
         for i, queued_action in enumerate(self.game.phase2_action_queue):
-            if queued_action["action_type"] == new_action.action_type.value:
+            if queued_action["action_type"] == new_action.action_type:
                 # Добавляем игрока к существующей группе
                 queued_action["participants"].append(new_action.player_id)
                 queued_action["params"].update(new_action.params)
@@ -295,7 +297,7 @@ class Phase2Engine:
         # Создаем новую группу
         self.game.phase2_action_queue.append(
             {
-                "action_type": new_action.action_type.value,
+                "action_type": new_action.action_type,
                 "participants": [new_action.player_id],
                 "params": new_action.params,
             }
@@ -563,9 +565,9 @@ class Phase2Engine:
                 source=f"action_{action_def.id}",
             )
 
-        if target_team not in self.game.phase2_team_debuffs:
-            self.game.phase2_team_debuffs[target_team] = []
-        self.game.phase2_team_debuffs[target_team].append(debuff)
+            if target_team not in self.game.phase2_team_debuffs:
+                self.game.phase2_team_debuffs[target_team] = []
+            self.game.phase2_team_debuffs[target_team].append(debuff)
 
         # Снятие дебафов
         if "remove_team_debuff" in effects:

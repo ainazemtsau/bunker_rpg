@@ -10,20 +10,42 @@ from bunker.domain.models.models import Game, Player
 
 # Используем основные данные
 DATA_DIR = Path(r"C:/Users/Zema/bunker-game/backend/data")
+TEST_DATA_DIR = Path(__file__).parent / "data"
+
+
+class TestGameData(GameData):
+    """Расширенный GameData для тестов"""
+
+    def __init__(self, root: Path | str):
+        super().__init__(root)
+
+        # Загружаем тестовые статусы если они есть
+        test_statuses_file = TEST_DATA_DIR / "test_statuses.yml"
+        if test_statuses_file.exists():
+            import yaml
+            from bunker.domain.models.status_models import StatusDef
+
+            with open(test_statuses_file, encoding="utf8") as f:
+                raw_statuses = yaml.safe_load(f)
+
+            # Добавляем тестовые статусы к основным
+            for raw in raw_statuses:
+                status_def = StatusDef.from_raw(raw)
+                self.statuses[status_def.id] = status_def
 
 
 @pytest.fixture
 def setup_phase2_with_statuses():
     """Подготовка игры для Phase2 с системой статусов"""
-    # Создаем реальные GameData
-    game_data = GameData(root=DATA_DIR)
+    # Используем TestGameData вместо обычной GameData
+    game_data = TestGameData(root=DATA_DIR)
     initializer = GameInitializer(game_data)
 
     # Создаем игру с 4 игроками
     host = Player("Host", "H")
     game = Game(host)
     for i in range(4):
-        p = Player(f"P{i}", f"S{i}")
+        p = Player(f"P{i}", f"S{i:}")
         game.players[p.id] = p
 
     eng = GameEngine(game, initializer, game_data)
@@ -111,26 +133,28 @@ class TestPhase2WithStatuses:
         """Тест истечения временного статуса"""
         eng, game, game_data = setup_phase2_with_statuses
 
-        # Применяем временный статус (2 раунда)
+        # Применяем временный статус (2 раунда) в раунде 1
+        assert game.phase2_round == 1
         eng._phase2_engine._status_manager.apply_status("high_morale", "test")
         assert eng._phase2_engine._status_manager.is_status_active("high_morale")
 
-        # Пропускаем раунды
-        for round_num in range(2, 5):
-            game.phase2_round = round_num
-            expired = eng._phase2_engine._status_manager.update_statuses_for_round()
+        # Раунд 2 - статус активен
+        game.phase2_round = 2
+        expired = eng._phase2_engine._status_manager.update_statuses_for_round()
+        assert "high_morale" not in expired
+        assert eng._phase2_engine._status_manager.is_status_active("high_morale")
 
-            if round_num < 4:  # Раунды 2, 3 - не истек
-                assert "high_morale" not in expired
-                assert eng._phase2_engine._status_manager.is_status_active(
-                    "high_morale"
-                )
-            else:  # Раунд 4 - истек
-                assert "high_morale" in expired
-                assert not eng._phase2_engine._status_manager.is_status_active(
-                    "high_morale"
-                )
-                break
+        # Раунд 3 - статус активен
+        game.phase2_round = 3
+        expired = eng._phase2_engine._status_manager.update_statuses_for_round()
+        assert "high_morale" not in expired
+        assert eng._phase2_engine._status_manager.is_status_active("high_morale")
+
+        # Раунд 4 - статус истекает
+        game.phase2_round = 4
+        expired = eng._phase2_engine._status_manager.update_statuses_for_round()
+        assert "high_morale" in expired
+        assert not eng._phase2_engine._status_manager.is_status_active("high_morale")
 
     def test_status_affects_team_stats(self, setup_phase2_with_statuses):
         """Тест влияния статуса на статы команд"""

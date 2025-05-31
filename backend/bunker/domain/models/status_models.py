@@ -217,11 +217,13 @@ class ActiveStatus:
 
     def is_expired(self, current_round: int) -> bool:
         """Проверить истек ли статус"""
+        print(f"Checking expiration for {self.status_id} at round {current_round}")
         if self.remaining_rounds == -1:  # until_removed
             return False
 
         rounds_passed = current_round - self.applied_at_round
-        return rounds_passed >= self.remaining_rounds
+        print(f"Rounds passed: {rounds_passed}, remaining: {self.remaining_rounds}")
+        return rounds_passed > self.remaining_rounds
 
     def to_dict(self) -> Dict[str, Any]:
         """Для сериализации в API"""

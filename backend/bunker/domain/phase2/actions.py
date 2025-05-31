@@ -42,7 +42,7 @@ class AttackBunkerAction(Phase2Action):
 
     def get_skill_check(self, character_stats: CharacterStats) -> Optional[SkillCheck]:
         return SkillCheck(
-            skill_name="attack_bunker",
+            skill_name="chemical_attack",
             base_difficulty=12,
             required_roll=12,
             modifiers={"STRENGTH": 1, "DEXTERITY": 0.5},

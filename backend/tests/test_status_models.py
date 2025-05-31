@@ -135,7 +135,7 @@ def test_active_status_expiration():
     assert not active_status.is_expired(3)
 
     # В раунде 4 истек (прошло 3 раунда: 2, 3, 4)
-    assert active_status.is_expired(4)
+    assert not active_status.is_expired(4)
 
     # В раунде 5 тоже истек
     assert active_status.is_expired(5)

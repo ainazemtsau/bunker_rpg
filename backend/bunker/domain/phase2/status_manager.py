@@ -115,7 +115,8 @@ class StatusManager:
 
         expired_statuses = []
         current_round = self.game.phase2_round
-
+        print(f"Updating statuses for round {current_round}")
+        print(f"Current active statuses: {self.game.phase2_active_statuses}")
         for status_id, active_status in list(
             self.game.phase2_active_statuses_detailed.items()
         ):

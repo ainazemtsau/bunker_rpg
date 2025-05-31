@@ -406,6 +406,7 @@ class GameEngine:
     def _can_execute_action(self, action: GameAction) -> bool:
         """Проверить можно ли выполнить действие"""
         available = self._get_available_actions()
+        print(f"Available actions: {available}")
         return action.type.name.lower() in available
 
     def _get_available_actions(self) -> List[str]:

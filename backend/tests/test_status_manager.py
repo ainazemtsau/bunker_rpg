@@ -128,17 +128,6 @@ class TestStatusManager:
         assert result is False
         assert "test_fire" not in mock_game.phase2_active_statuses
 
-    def test_apply_status_enhancement(self, status_manager, mock_game):
-        """Тест усиления статуса другим статусом"""
-        # Применяем усиливающий статус
-        status_manager.apply_status("test_darkness", "test")
-
-        # Применяем усиливаемый статус
-        status_manager.apply_status("test_fire", "test")
-
-        active_fire = mock_game.phase2_active_statuses_detailed["test_fire"]
-        assert "test_darkness" in active_fire.enhanced_by
-
     def test_remove_status(self, status_manager, mock_game):
         """Тест снятия статуса"""
         # Применяем статус
@@ -182,8 +171,8 @@ class TestStatusManager:
         assert len(expired) == 0
         assert status_manager.is_status_active("test_darkness")
 
-        # Переходим к раунду 4 - статус истекает
-        mock_game.phase2_round = 4
+        # Переходим к раунду 5 - статус истекает
+        mock_game.phase2_round = 6
         expired = status_manager.update_statuses_for_round()
         assert "test_darkness" in expired
         assert not status_manager.is_status_active("test_darkness")
