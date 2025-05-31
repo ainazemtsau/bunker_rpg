@@ -15,39 +15,69 @@ class ActionFilter:
         self, player_id: str, team: str, all_actions: Dict[str, Phase2ActionDef]
     ) -> List[Phase2ActionDef]:
         """Получить список доступных действий для игрока"""
+        print(
+            f"\n--- Checking available actions for player {player_id} (team {team}) ---"
+        )
+
         if player_id not in self.game.characters:
+            print(f"Player {player_id} not found in characters!")
             return []
 
         character = self.game.characters[player_id]
+        print(
+            f"Character traits: {list(character.traits.keys()) if hasattr(character, 'traits') else 'NO TRAITS'}"
+        )
+
         available = []
 
         for action in all_actions.values():
+            print(f"Checking action {action.id} (team: {action.team})")
+
             if action.team != team:
+                print(f"  Skipped - wrong team ({action.team} != {team})")
                 continue
 
-            if self._can_player_perform_action(player_id, character, action):
+            can_perform = self._can_player_perform_action(player_id, character, action)
+            print(f"  Can perform: {can_perform}")
+
+            if can_perform:
                 available.append(action)
 
+        print(f"Total available actions: {[a.id for a in available]}")
         return available
 
     def _can_player_perform_action(
         self, player_id: str, character: Character, action: Phase2ActionDef
     ) -> bool:
         """Проверить может ли игрок выполнить действие"""
+        print(f"    Checking requirements for action {action.id}")
         req = action.requirements
+
+        print(
+            f"    Requirements: any_of={len(req.any_of)}, all_of={len(req.all_of)}, not_having={len(req.not_having)}"
+        )
+
+        # Если нет требований - действие доступно
+        if not req.any_of and not req.all_of and not req.not_having:
+            print(f"    No requirements - action available")
+            return True
 
         # Проверяем обязательные требования (all_of)
         if req.all_of and not self._check_all_of(player_id, character, req.all_of):
+            print(f"    Failed all_of requirements")
             return False
 
         # Проверяем альтернативные требования (any_of)
         if req.any_of and not self._check_any_of(player_id, character, req.any_of):
+            print(f"    Failed any_of requirements")
             return False
 
         # Проверяем запрещающие требования (not_having)
         if req.not_having and self._check_any_of(player_id, character, req.not_having):
+            print(f"    Failed not_having requirements")
             return False
 
+        print(f"    All requirements passed")
         return True
 
     def _check_all_of(
@@ -96,10 +126,17 @@ class ActionFilter:
                 if not self._check_trait_requirement(character, "phobia", req_value):
                     return False
             elif req_type == "bunker_object":
-                if not self._check_bunker_object_requirement(req_value, "working"):
+                # Найдем требуемое состояние в этом же требовании
+                required_state = "working"  # по умолчанию
+                for other_req_type, other_req_value in req.items():
+                    if other_req_type == "bunker_object_state":
+                        required_state = other_req_value
+                        break
+
+                if not self._check_bunker_object_requirement(req_value, required_state):
                     return False
             elif req_type == "bunker_object_state":
-                # Это проверяется вместе с bunker_object
+                # Это обрабатывается вместе с bunker_object
                 continue
             elif req_type == "active_status":
                 if not self._check_active_status_requirement(req_value):

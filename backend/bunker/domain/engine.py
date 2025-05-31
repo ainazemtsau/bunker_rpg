@@ -80,6 +80,8 @@ class GameEngine:
         if not self._phase2_engine:
             raise ValueError("Phase2 engine not initialized")
 
+        print(f"\n=== Executing Phase2 action: {action.type} ===")
+
         if action.type == ActionType.MAKE_ACTION:
             self._phase2_player_action(action.payload)
         elif action.type == ActionType.PROCESS_ACTION:
@@ -88,6 +90,10 @@ class GameEngine:
             self._phase2_resolve_crisis(action.payload)
         elif action.type == ActionType.FINISH_TEAM_TURN:
             self._phase2_finish_team_turn()
+
+        # ВАЖНО: Проверяем победу после КАЖДОГО действия
+        print("Checking victory conditions after action...")
+        self._check_phase2_victory()
 
     # ======== Phase1 методы ========
     def _start_game(self):
@@ -159,12 +165,18 @@ class GameEngine:
         if not self._game_data:
             raise ValueError("GameData required for Phase2")
 
-        # Распределяем игроков по командам
-        alive = set(self.game.alive_ids())
-        eliminated = set(self.game.eliminated_ids)
+        # Проверяем есть ли уже установленные команды (для тестов)
+        if not self.game.team_in_bunker and not self.game.team_outside:
+            # Распределяем игроков по командам автоматически
+            alive = set(self.game.alive_ids())
+            eliminated = set(self.game.eliminated_ids)
 
-        self.game.team_in_bunker = alive
-        self.game.team_outside = eliminated
+            self.game.team_in_bunker = alive
+            self.game.team_outside = eliminated
+
+        print(
+            f"Phase2 teams - Bunker: {list(self.game.team_in_bunker)}, Outside: {list(self.game.team_outside)}"
+        )
 
         # Инициализируем движок Phase2
         self._phase2_engine = Phase2Engine(self.game, self._game_data)
@@ -233,9 +245,17 @@ class GameEngine:
         if not self._phase2_engine:
             return
 
+        print(f"Current phase before victory check: {self._phase}")
         victory_condition = self._phase2_engine.check_victory_conditions()
+
         if victory_condition:
+            print(
+                f"VICTORY CONDITION MET: {victory_condition}, winner: {self.game.winner}"
+            )
+            print(f"Changing phase from {self._phase} to FINISHED")
             self._phase = GamePhase.FINISHED
+        else:
+            print("No victory condition met, continuing game...")
 
     # ======== Вспомогательные методы ========
     def _get_current_turn_info(self) -> Dict[str, Any]:
@@ -258,30 +278,83 @@ class GameEngine:
         current_player = self._phase2_engine.get_current_player()
         available_actions = []
 
+        bunker_objects = {}
+        if self._phase2_engine:
+            bunker_objects = self._phase2_engine.get_bunker_objects_details()
+
         if current_player:
-            actions = self._phase2_engine.get_available_actions(
-                self.game.phase2_current_team
+            actions = self._phase2_engine.get_available_actions_for_player(
+                current_player
             )
             available_actions = [{"id": a.id, "name": a.name} for a in actions]
 
         crisis = self._phase2_engine.get_current_crisis()
         crisis_data = None
         if crisis:
+            mini_game_data = None
+            if crisis.mini_game:
+                mini_game_data = {
+                    "id": crisis.mini_game.mini_game_id,
+                    "name": crisis.mini_game.name,
+                    "rules": crisis.mini_game.rules,
+                }
+
             crisis_data = {
                 "id": crisis.crisis_id,
                 "name": crisis.name,
                 "description": crisis.description,
                 "important_stats": crisis.important_stats,
                 "team_advantages": crisis.team_advantages,
+                "mini_game": mini_game_data,
             }
 
         next_action = self._phase2_engine.get_next_action_to_process()
+
+        # Собираем информацию об объектах бункера
+        bunker_objects = {}
+        for obj_id, obj_state in self.game.phase2_bunker_objects.items():
+            bunker_objects[obj_id] = {
+                "name": obj_state.name,
+                "status": obj_state.status,
+                "usable": obj_state.is_usable(),
+            }
+
+        if not bunker_objects:
+            print("WARNING: No bunker objects found in game state!")
+        else:
+            print(f"Bunker objects in view: {list(bunker_objects.keys())}")
+
+        # Собираем информацию о дебафах
+        team_debuffs = {}
+        for team, debuffs in self.game.phase2_team_debuffs.items():
+            team_debuffs[team] = [
+                {
+                    "name": d.name,
+                    "stat_penalties": d.stat_penalties,
+                    "remaining_rounds": d.remaining_rounds,
+                    "source": d.source,
+                }
+                for d in debuffs
+            ]
+
+        # Собираем информацию о фобиях
+        active_phobias = {}
+        for player_id, phobia in self.game.phase2_player_phobias.items():
+            active_phobias[player_id] = {
+                "phobia_name": phobia.phobia_name,
+                "trigger_source": phobia.trigger_source,
+                "affected_stats": phobia.affected_stats,
+            }
 
         return {
             "phase2": {
                 "round": self.game.phase2_round,
                 "current_team": self.game.phase2_current_team,
                 "bunker_hp": self.game.phase2_bunker_hp,
+                "morale": self.game.phase2_morale,
+                "supplies": self.game.phase2_supplies,
+                "supplies_countdown": self.game.phase2_supplies_countdown,
+                "morale_countdown": self.game.phase2_morale_countdown,
                 "current_player": current_player,
                 "available_actions": available_actions,
                 "action_queue": self.game.phase2_action_queue,
@@ -290,8 +363,13 @@ class GameEngine:
                 "team_turn_complete": self._phase2_engine.is_team_turn_complete(),
                 "current_crisis": crisis_data,
                 "team_stats": self.game.phase2_team_stats,
+                "team_debuffs": team_debuffs,
+                "active_phobias": active_phobias,
+                "active_statuses": self.game.phase2_active_statuses,
+                "bunker_objects": bunker_objects,
                 "action_log": self.game.phase2_action_log,
                 "winner": self.game.winner,
+                "bunker_objects": bunker_objects,
             }
         }
 

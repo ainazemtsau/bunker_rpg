@@ -91,6 +91,28 @@ class Phase2CrisisDef:
 
 
 @dataclass(slots=True)
+class MiniGameDef:
+    """Определение мини-игры из конфига"""
+
+    id: str
+    name: str
+    rules: str
+    crisis_events: List[str]  # к каким кризисам применима
+
+    @classmethod
+    def from_raw(cls, raw: Any) -> "MiniGameDef":
+        if not isinstance(raw, dict) or "id" not in raw:
+            raise TypeError("MiniGame must be mapping with an 'id' key")
+
+        return cls(
+            id=raw["id"],
+            name=raw.get("name", raw["id"]),
+            rules=raw.get("rules", ""),
+            crisis_events=raw.get("crisis_events", []),
+        )
+
+
+@dataclass(slots=True)
 class Phase2Config:
     """Конфигурация Phase2"""
 

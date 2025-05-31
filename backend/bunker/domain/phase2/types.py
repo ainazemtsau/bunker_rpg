@@ -7,7 +7,7 @@ from enum import Enum
 class Phase2ActionType(Enum):
     # Outside team actions
     ATTACK_BUNKER = "attack_bunker"
-    SABOTAGE = "sabotage"
+    SABOTAGE = "sabotage_systems"
     PSYCHOLOGICAL_WARFARE = "psychological_warfare"
 
     # Bunker team actions
@@ -15,6 +15,10 @@ class Phase2ActionType(Enum):
     FORTIFY = "fortify"
     MEDICAL_AID = "medical_aid"
     SEARCH_SUPPLIES = "search_supplies"
+    BOOST_MORALE = "boost_morale"
+    REPAIR_GENERATOR = "repair_generator"
+    EXTINGUISH_FIRE = "extinguish_fire"
+    TREAT_PHOBIA = "treat_phobia"
 
 
 class CrisisResult(Enum):
@@ -57,8 +61,17 @@ class ActionResult:
 
 
 @dataclass
+class MiniGameInfo:
+    """Информация о мини-игре для кризиса"""
+
+    mini_game_id: str
+    name: str
+    rules: str
+
+
+@dataclass
 class CrisisEvent:
-    """Кризисная ситуация"""
+    """Кризисная ситуация с мини-игрой"""
 
     crisis_id: str
     name: str
@@ -66,6 +79,7 @@ class CrisisEvent:
     important_stats: List[str]
     team_advantages: Dict[str, int]
     penalty_on_fail: Dict[str, Any]
+    mini_game: Optional[MiniGameInfo] = None  # выбранная мини-игра
 
 
 @dataclass

@@ -1,30 +1,16 @@
-# Базовые настройки игры
+# Конфиг для быстрых тестов
 game_settings:
-  max_rounds: 3 # еще меньше для быстрого теста
-  starting_bunker_hp: 3 # очень мало
-  starting_morale: 3 # очень мало
-  starting_supplies: 3 # очень мало
+  max_rounds: 3
+  starting_bunker_hp: 3
+  starting_morale: 3
+  starting_supplies: 3
   supplies_countdown_limit: 1
   morale_countdown_limit: 1
-  # Начальные объекты бункера
   initial_bunker_objects:
     - id: "generator"
       name: "Генератор"
       status: "working"
-    - id: "ventilation"
-      name: "Вентиляционная система"
-      status: "working"
-    - id: "medical_bay"
-      name: "Медпункт"
-      status: "working"
-    - id: "communications"
-      name: "Система связи"
-      status: "working"
-    - id: "water_filter"
-      name: "Фильтр воды"
-      status: "working"
 
-# Остальное оставляем как было...
 victory_conditions:
   bunker_destroyed:
     condition: bunker_hp <= 0

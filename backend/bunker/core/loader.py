@@ -9,6 +9,7 @@ from bunker.domain.models.phase2_models import (
     Phase2ActionDef,
     Phase2CrisisDef,
     Phase2Config,
+    MiniGameDef,
 )
 
 LOAD_MAP: dict[str, Callable[[Any], Any]] = {
@@ -23,6 +24,7 @@ LOAD_MAP: dict[str, Callable[[Any], Any]] = {
     "bunker_objects": BunkerObject.from_raw,
     "phase2_actions": Phase2ActionDef.from_raw,
     "phase2_crises": Phase2CrisisDef.from_raw,
+    "mini_games": MiniGameDef.from_raw,
 }
 
 BASE_FILES = {k: f"{k}.yml" for k in LOAD_MAP.keys()}
@@ -40,17 +42,14 @@ class GameData:
     def __init__(self, root: Path | str):
         root = Path(root)
 
-        # Загружаем обычные коллекции
         for name, factory in LOAD_MAP.items():
-            file_path = root / BASE_FILES[name]
-            raw = load_any(file_path)
+            raw = load_any(root / BASE_FILES[name])
             records = [factory(rec) for rec in raw]
-            if name in ("irl_games", "phase2_actions", "phase2_crises"):
+            # все наши коллекции (professions, crises, bunker_objects и т.д.)—
+            # это списки, кроме тех, что мы хотим по id.
+            if name in ("crises", "irl_games", "actions"):
+                # словари по ключу .id
                 setattr(self, name, {r.id: r for r in records})
             else:
+                # просто список
                 setattr(self, name, records)
-
-        # Загружаем конфигурацию Phase2 отдельно
-        config_path = root / BASE_FILES["phase2_config"]
-        config_raw = load_any(config_path)
-        self.phase2_config = Phase2Config.from_raw(config_raw)

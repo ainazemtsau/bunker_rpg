@@ -11,6 +11,10 @@ class BunkerObject:
     check: Dict[str, int] = field(default_factory=dict)
     tags: List[str] = field(default_factory=list)
     requirements: List[dict] = field(default_factory=list)
+    base_bonus: Dict[str, int] = field(default_factory=dict)  # новое поле
+    trait_bonuses: Dict[str, Dict[str, float]] = field(
+        default_factory=dict
+    )  # новое поле
 
     @classmethod
     def from_raw(cls, raw: Any) -> "BunkerObject":
@@ -23,4 +27,6 @@ class BunkerObject:
             check=raw.get("check", {}),
             tags=raw.get("tags", []),
             requirements=raw.get("requirements", []),
+            base_bonus=raw.get("base_bonus", {}),
+            trait_bonuses=raw.get("trait_bonuses", {}),
         )
