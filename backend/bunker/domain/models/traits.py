@@ -12,6 +12,7 @@ class Trait:
     mult: Dict[str, float] = field(default_factory=dict)
     team_mult: Dict[str, float] = field(default_factory=dict)
     tags: List[str] = field(default_factory=list)
+    revealed: bool = False
 
     @classmethod
     def from_raw(cls, raw: Any) -> "Trait":
@@ -25,4 +26,15 @@ class Trait:
             mult=raw.get("mult", {}),
             team_mult=raw.get("team_mult", {}),
             tags=raw.get("tags", []),
+            revealed=raw.get("revealed", False),
         )
+
+    def to_dict(self):
+        return {
+            "name": self.name,
+            "add": self.add,
+            "mult": self.mult,
+            "team_mult": self.team_mult,
+            "tags": self.tags,
+            "revealed": self.revealed,
+        }

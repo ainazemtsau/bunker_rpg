@@ -91,7 +91,14 @@ class GameService:
     # ───────────────── Re/connect ───────────────────────────────────
     def rejoin(self, gid: str, player_id: str, sid: str) -> Dict[str, Any]:
         game = game_repo.get(gid) or self._not_found()
-        player = game.players.get(player_id) or self._player_not_found()
+        player = game.players.get(player_id)
+        if not player and getattr(game, "host", None) and game.host.id == player_id:
+            print(f"Found host")
+            player = game.host
+        if not player:
+            print(f"NotFound player")
+            self._player_not_found()
+
         player.sid, player.online = sid, True
         return self._engines[gid].view()
 

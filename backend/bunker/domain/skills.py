@@ -82,7 +82,7 @@ class SkillCheckResolver:
 
         # Базовый бросок
         roll = self._rng.randint(1, 20)
-
+        print(f"Бросок кубика: {roll}")
         # Применяем модификаторы
         total_modifier = 0
         for stat_name, modifier in skill_check.modifiers.items():
@@ -96,7 +96,7 @@ class SkillCheckResolver:
         critical_failure = roll == 1 and not success
 
         return ActionResult(
-            success=success,
+            success=False,
             critical_failure=critical_failure,
             effects={"roll": roll, "modifier": total_modifier, "final": final_result},
         )

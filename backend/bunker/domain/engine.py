@@ -271,22 +271,19 @@ class GameEngine:
         return {}
 
     def _get_phase2_view(self) -> Dict[str, Any]:
-        """Получить представление Phase2 С ПОЛНОЙ ИНФОРМАЦИЕЙ О СТАТУСАХ"""
+        """Получить представление Phase2 С ДЕТАЛЬНОЙ ИСТОРИЕЙ"""
         if not self._phase2_engine:
             return {"phase2": {}}
 
         current_player = self._phase2_engine.get_current_player()
         available_actions = []
 
-        # Получаем доступные действия С УЧЕТОМ СТАТУСОВ
+        # Получаем доступные действия
         if current_player:
             actions = self._phase2_engine.get_available_actions_for_player(
                 current_player
             )
-            available_actions = []
-
             for action in actions:
-                # Проверяем модификаторы от статусов
                 status_mods = self._phase2_engine._status_manager.get_action_modifiers(
                     action.id
                 )
@@ -298,7 +295,6 @@ class GameEngine:
                     "stat_weights": action.stat_weights,
                 }
 
-                # Добавляем информацию о влиянии статусов
                 if status_mods["blocked"]:
                     action_data["blocked"] = True
                     action_data["blocking_statuses"] = status_mods["blocking_statuses"]
@@ -338,7 +334,17 @@ class GameEngine:
 
         next_action = self._phase2_engine.get_next_action_to_process()
 
-        # Собираем информацию об объектах бункера
+        # ← НОВОЕ: Детальная история действий
+        detailed_history = self._phase2_engine.get_detailed_action_history()
+
+        # ← НОВОЕ: Предварительный расчет для текущего действия
+        action_preview = None
+        if next_action:
+            action_preview = self._phase2_engine.get_action_preview(
+                next_action["participants"], next_action["action_type"]
+            )
+
+        # Существующий код для объектов, дебафов, фобий, статусов...
         bunker_objects = {}
         for obj_id, obj_state in self.game.phase2_bunker_objects.items():
             bunker_objects[obj_id] = {
@@ -347,7 +353,6 @@ class GameEngine:
                 "usable": obj_state.is_usable(),
             }
 
-        # Собираем информацию о дебафах
         team_debuffs = {}
         for team, debuffs in self.game.phase2_team_debuffs.items():
             team_debuffs[team] = [
@@ -360,7 +365,6 @@ class GameEngine:
                 for d in debuffs
             ]
 
-        # Собираем информацию о фобиях
         active_phobias = {}
         for player_id, phobia in self.game.phase2_player_phobias.items():
             active_phobias[player_id] = {
@@ -369,7 +373,6 @@ class GameEngine:
                 "affected_stats": phobia.affected_stats,
             }
 
-        # ← НОВОЕ: Получаем полную информацию о статусах
         active_statuses_full = (
             self._phase2_engine._status_manager.get_statuses_for_api()
         )
@@ -387,15 +390,17 @@ class GameEngine:
                 "available_actions": available_actions,
                 "action_queue": self.game.phase2_action_queue,
                 "current_action": next_action,
+                "action_preview": action_preview,  # ← НОВОЕ
                 "can_process_actions": self._phase2_engine.can_process_actions(),
                 "team_turn_complete": self._phase2_engine.is_team_turn_complete(),
                 "current_crisis": crisis_data,
                 "team_stats": self.game.phase2_team_stats,
                 "team_debuffs": team_debuffs,
                 "active_phobias": active_phobias,
-                "active_statuses": active_statuses_full,  # ← НОВОЕ: полная информация
+                "active_statuses": active_statuses_full,
                 "bunker_objects": bunker_objects,
-                "action_log": self.game.phase2_action_log,
+                "action_log": self.game.phase2_action_log,  # общая история
+                "detailed_history": detailed_history,  # ← НОВОЕ: детальная история
                 "winner": self.game.winner,
             }
         }

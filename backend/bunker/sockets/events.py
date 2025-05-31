@@ -54,12 +54,16 @@ def register_events(sio):
     @sio.on("rejoin_game")
     def rejoin_game(data):
         try:
-            snap = service.rejoin(data["id"], data["player_id"], request.sid)
+            player_id = data.get("player_id") or data.get("playerId")
+            if not player_id:
+                return emit("error", {"message": "Missing player_id"})
+            snap = service.rejoin(data["id"], player_id, request.sid)
         except ValueError as e:
             return emit("error", {"message": str(e)})
+        print("[rejoin_game]2", snap)
         join_room(_room_id(snap))
         sio.emit("game_updated", {"game": snap}, room=_room_id(snap))
-        emit("rejoined", {"game": snap, "player_id": data["player_id"]})
+        emit("rejoined", {"game": snap, "player_id": player_id})
 
     # ---------- gameplay -----------------------------------
     @sio.on("game_action")
@@ -206,3 +210,31 @@ def register_events(sio):
             },
             room=_room_id(snap),
         )
+
+    @sio.on("phase2_get_action_preview")
+    def phase2_get_action_preview(data):
+        """Получить предварительный расчет действия"""
+        try:
+            print("[phase2_get_action_preview]", data)
+            required_fields = ["gameId", "participants", "actionId"]
+            if not all(field in data for field in required_fields):
+                return emit("error", {"message": "Missing required fields"})
+
+            snap = service.get_game_snapshot(data["gameId"])
+            if not snap:
+                return emit("error", {"message": "Game not found"})
+
+            # Получаем движок
+            eng = service._engines.get(data["gameId"])
+            if not eng or not eng._phase2_engine:
+                return emit("error", {"message": "Phase2 not available"})
+
+            # Получаем предварительный расчет
+            preview = eng._phase2_engine.get_action_preview(
+                data["participants"], data["actionId"]
+            )
+
+            emit("action_preview", {"preview": preview}, room=request.sid)
+
+        except ValueError as e:
+            emit("error", {"message": str(e)})

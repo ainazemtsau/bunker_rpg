@@ -328,7 +328,7 @@ class Phase2Engine:
         return self.game.phase2_action_queue[self.game.phase2_current_action_index]
 
     def process_current_action(self) -> ActionResult:
-        """Обработать текущее действие С УЧЕТОМ СТАТУСОВ"""
+        """Обработать текущее действие С ДЕТАЛЬНЫМ ЛОГИРОВАНИЕМ"""
         if self.game.phase2_current_action_index >= len(self.game.phase2_action_queue):
             raise ValueError("No actions to process")
 
@@ -337,7 +337,12 @@ class Phase2Engine:
         ]
         action_def = self.data.phase2_actions[action_data["action_type"]]
 
-        # ← НОВОЕ: Проверяем модификаторы от статусов
+        # НОВОЕ: Получаем детальную информацию ДО выполнения
+        action_preview = self.get_action_preview(
+            action_data["participants"], action_data["action_type"]
+        )
+
+        # Проверяем модификаторы от статусов
         status_modifiers = self._status_manager.get_action_modifiers(
             action_data["action_type"]
         )
@@ -354,12 +359,15 @@ class Phase2Engine:
                 effects={"blocked_by_statuses": status_modifiers["blocking_statuses"]},
             )
 
+            # ОБНОВЛЕННОЕ логирование с детальной информацией
             self.game.phase2_processed_actions.append(
                 {
                     "action_type": action_data["action_type"],
                     "participants": action_data["participants"],
                     "blocked": True,
                     "blocking_statuses": status_modifiers["blocking_statuses"],
+                    "preview": action_preview,  # ← НОВОЕ: детальная информация
+                    "timestamp": self.game.phase2_round,
                 }
             )
 
@@ -375,16 +383,22 @@ class Phase2Engine:
         combined_stats = int(combined_stats * status_modifiers["effectiveness"])
 
         # Бросок кубика
-        roll = self.rng.randint(1, 20)
-
+        roll = self.rng.randint(1, 2)
+        print(
+            f"Roll for action {action_data['action_type']} (participants: {action_data['participants']}): {roll}"
+        )
         # Применяем модификаторы сложности от статусов
         modified_difficulty = (
             action_def.difficulty + status_modifiers["difficulty_modifier"]
         )
-
+        print(
+            f"Modified difficulty: {modified_difficulty} (base: {action_def.difficulty}, modifier: {status_modifiers['difficulty_modifier']})"
+        )
         total = roll + combined_stats
         success = total >= modified_difficulty
-
+        print(
+            f"Total roll: {total} (roll: {roll}, combined stats: {combined_stats}) - Success: {success}"
+        )
         # Создание результата
         result = ActionResult(
             success=success,
@@ -396,24 +410,22 @@ class Phase2Engine:
             effects={},
         )
 
-        # Применение эффектов (существующий код + проверка снятия статусов)
+        # Применение эффектов (существующий код)
         if success:
             effects = action_def.effects.get("success", {})
             self._apply_action_effects(effects, result, action_def)
-
-            # ← НОВОЕ: Проверяем снятие статусов
             self._check_status_removal(action_data["action_type"])
         else:
             effects = action_def.effects.get("failure", {})
             self._apply_action_effects(effects, result, action_def)
 
-            # Проверка на кризис (существующий код)
             if action_def.team == "bunker" and "crisis_trigger" in effects:
                 crisis_id = effects["crisis_trigger"]
+                print(f"Triggering crisis: {crisis_id}")
                 result.crisis_triggered = crisis_id
                 self._current_crisis = self._create_crisis_event(crisis_id)
 
-        # Сохраняем результат (существующий код)
+        # ОБНОВЛЕННОЕ сохранение результата с детальной информацией
         self.game.phase2_processed_actions.append(
             {
                 "action_type": action_data["action_type"],
@@ -425,6 +437,10 @@ class Phase2Engine:
                 "effects": result.effects,
                 "status_modifiers": status_modifiers,
                 "crisis_triggered": result.crisis_triggered,
+                "preview": action_preview,  # ← НОВОЕ: детальная информация
+                "timestamp": self.game.phase2_round,
+                "total_needed": total,
+                "required_roll": max(1, modified_difficulty - combined_stats),
             }
         )
 
@@ -608,6 +624,8 @@ class Phase2Engine:
     def _create_crisis_event(self, crisis_id: str) -> CrisisEvent:
         """Создать событие кризиса с мини-игрой"""
         crisis_def = self.data.phase2_crises.get(crisis_id)
+        print(f"Creating crisis event for crisis_id: {crisis_id}")
+
         if not crisis_def:
             raise ValueError(f"Unknown crisis: {crisis_id}")
 
@@ -974,3 +992,175 @@ class Phase2Engine:
         self._calculate_team_stats()
 
         print(f"Force setup teams: bunker={bunker_players}, outside={outside_players}")
+
+    def get_action_preview(
+        self, participants: List[str], action_id: str
+    ) -> Dict[str, Any]:
+        """Получить предварительную информацию о действии ДО его выполнения"""
+        if action_id not in self.data.phase2_actions:
+            return {}
+
+        action_def = self.data.phase2_actions[action_id]
+
+        # Получаем модификаторы от статусов
+        status_modifiers = self._status_manager.get_action_modifiers(action_id)
+
+        # Детальная информация по каждому участнику
+        participants_details = []
+        total_stats = 0
+
+        for player_id in participants:
+            if player_id not in self.game.characters:
+                continue
+
+            character = self.game.characters[player_id]
+            base_stats = character.aggregate_stats()
+
+            # Применяем эффекты фобий
+            phobia_penalties = {}
+            if player_id in self.game.phase2_player_phobias:
+                phobia = self.game.phase2_player_phobias[player_id]
+                phobia_penalties = phobia.affected_stats
+                for stat, penalty in phobia_penalties.items():
+                    if stat in base_stats:
+                        base_stats[stat] = max(
+                            base_stats[stat] + penalty,
+                            self.config.mechanics.get("phobia_stat_floor", -2),
+                        )
+
+            # Получаем бонусы от черт
+            trait_bonuses = self._action_filter.calculate_action_effectiveness(
+                player_id, action_def
+            )
+
+            # Применяем бонусы к характеристикам
+            modified_stats = base_stats.copy()
+            for stat, bonus in trait_bonuses.items():
+                if stat in modified_stats:
+                    modified_stats[stat] += bonus
+
+            # Считаем вклад игрока в действие
+            player_contribution = 0
+            stat_contributions = {}
+            for stat, weight in action_def.stat_weights.items():
+                contribution = modified_stats.get(stat, 0) * weight
+                player_contribution += contribution
+                stat_contributions[stat] = {
+                    "base": base_stats.get(stat, 0),
+                    "trait_bonus": trait_bonuses.get(stat, 0),
+                    "phobia_penalty": phobia_penalties.get(stat, 0),
+                    "final": modified_stats.get(stat, 0),
+                    "weight": weight,
+                    "contribution": contribution,
+                }
+
+            participants_details.append(
+                {
+                    "player_id": player_id,
+                    "player_name": (
+                        self.game.players[player_id].name
+                        if player_id in self.game.players
+                        else player_id
+                    ),
+                    "base_stats": base_stats,
+                    "trait_bonuses": trait_bonuses,
+                    "phobia_penalties": phobia_penalties,
+                    "final_stats": modified_stats,
+                    "stat_contributions": stat_contributions,
+                    "total_contribution": player_contribution,
+                }
+            )
+
+            total_stats += player_contribution
+
+        # Бонус за групповое действие
+        group_bonus = 0
+        if len(participants) > 1:
+            group_bonus_rate = self.config.coefficients.get("group_action_bonus", 0.5)
+            group_bonus = len(participants) * group_bonus_rate
+            total_stats += group_bonus
+
+        # Применяем модификаторы эффективности от статусов
+        total_stats = int(total_stats * status_modifiers["effectiveness"])
+
+        # Расчет сложности с модификаторами статусов
+        base_difficulty = action_def.difficulty
+        modified_difficulty = base_difficulty + status_modifiers["difficulty_modifier"]
+
+        # Расчет шанса успеха
+        # Нужно выкинуть >= (modified_difficulty - total_stats) на d20
+        required_roll = max(1, modified_difficulty - total_stats)
+        success_chance = max(0, min(100, (21 - required_roll) * 5))  # в процентах
+
+        return {
+            "action_id": action_id,
+            "action_name": action_def.name,
+            "participants": participants_details,
+            "group_bonus": group_bonus,
+            "total_stats": total_stats,
+            "base_difficulty": base_difficulty,
+            "status_modifiers": status_modifiers,
+            "modified_difficulty": modified_difficulty,
+            "required_roll": required_roll,
+            "success_chance": success_chance,
+            "blocked": status_modifiers["blocked"],
+            "blocking_statuses": status_modifiers.get("blocking_statuses", []),
+        }
+
+    def get_detailed_action_history(self) -> List[Dict[str, Any]]:
+        """Получить детальную историю всех действий за игру"""
+        detailed_history = []
+
+        for log_entry in self.game.phase2_action_log:
+            if log_entry.get("type") == "team_turn" and "actions" in log_entry:
+                for action_result in log_entry["actions"]:
+                    if "action_type" in action_result:
+                        # Преобразуем в детальный формат для UI
+                        detailed_action = self._format_action_for_history(
+                            action_result, log_entry
+                        )
+                        detailed_history.append(detailed_action)
+
+            elif log_entry.get("type") == "crisis":
+                # Добавляем кризисы в историю
+                detailed_history.append(
+                    {
+                        "type": "crisis",
+                        "round": log_entry.get("round", "unknown"),
+                        "crisis_id": log_entry["crisis_id"],
+                        "result": log_entry["result"],
+                        "penalty_applied": log_entry.get("penalty_applied", False),
+                    }
+                )
+
+        return detailed_history
+
+    def _format_action_for_history(
+        self, action_result: Dict[str, Any], log_entry: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        """Форматировать действие для истории"""
+        action_id = action_result["action_type"]
+        action_def = self.data.phase2_actions.get(action_id)
+
+        return {
+            "type": "action",
+            "round": log_entry.get("round", "unknown"),
+            "team": log_entry.get("team", "unknown"),
+            "action_id": action_id,
+            "action_name": action_def.name if action_def else action_id,
+            "participants": action_result.get("participants", []),
+            "success": action_result.get("success", False),
+            "roll": action_result.get("roll", 0),
+            "combined_stats": action_result.get("combined_stats", 0),
+            "difficulty": action_result.get("difficulty", 0),
+            "required_roll": max(
+                1,
+                action_result.get("difficulty", 0)
+                - action_result.get("combined_stats", 0),
+            ),
+            "effects": action_result.get("effects", {}),
+            "status_modifiers": action_result.get("status_modifiers", {}),
+            "crisis_triggered": action_result.get("crisis_triggered"),
+            "blocked": action_result.get("blocked", False),
+            "blocking_statuses": action_result.get("blocking_statuses", []),
+        }

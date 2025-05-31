@@ -21,9 +21,26 @@ class Character:
 
     def to_public_dict(self) -> Dict[str, str | None]:
         return {
-            attr: (self.traits[attr].name if attr in self.revealed else None)
+            attr: (
+                self.traits[attr].to_dict()
+                if attr in self.revealed
+                else self.traits[attr].to_dict()
+            )
             for attr in self.reveal_order
         }
+
+    def to_owner_dict(self) -> Dict[str, Dict[str, any]]:
+        """
+        Формирует словарь для фронта, где у каждого трейта есть поле revealed (True/False).
+        """
+        owner_view = {}
+        for attr_key in self.reveal_order:
+            if attr_key in self.traits:
+                trait_obj = self.traits[attr_key]
+                trait_dict = trait_obj.to_dict()
+                trait_dict["revealed"] = self.is_revealed(attr_key)
+                owner_view[attr_key] = trait_dict
+        return owner_view
 
     @property
     def reveal_order(self) -> List[str]:
