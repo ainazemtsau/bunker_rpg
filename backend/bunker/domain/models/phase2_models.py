@@ -26,22 +26,20 @@ class ActionRequirement:
 
 @dataclass(slots=True)
 class Phase2ActionDef:
-    """Определение действия Phase2 из конфига"""
-
     id: str
     name: str
-    team: str  # "outside" | "bunker"
+    team: str
     difficulty: int
     required_stats: List[str]
     stat_weights: Dict[str, float]
-    stat_bonuses: Dict[
-        str, Dict[str, Dict[str, int]]
-    ]  # trait_type -> trait_name -> stat_bonus
+    stat_bonuses: Dict[str, Dict[str, Dict[str, int]]]
     requirements: ActionRequirement
-    effects: Dict[str, Dict[str, Any]]  # success/failure -> effects
-    removes_status: List[str] = field(
-        default_factory=list
-    )  # какие статусы убирает при успехе
+    effects: Dict[str, Dict[str, Any]]
+    removes_status: List[str] = field(default_factory=list)
+
+    # ← НОВЫЕ ПОЛЯ
+    mini_games: List[str] = field(default_factory=list)
+    failure_crises: List[str] = field(default_factory=list)
 
     @classmethod
     def from_raw(cls, raw: Any) -> "Phase2ActionDef":
@@ -57,8 +55,10 @@ class Phase2ActionDef:
             stat_weights=raw.get("stat_weights", {}),
             stat_bonuses=raw.get("stat_bonuses", {}),
             requirements=ActionRequirement.from_raw(raw.get("requirements", {})),
-            effects=raw.get("effects", {"success": {}, "failure": {}}),
+            effects=raw.get("effects", {"success": {}}),
             removes_status=raw.get("removes_status", []),
+            mini_games=raw.get("mini_games", []),  # ← ДОБАВЛЕНО
+            failure_crises=raw.get("failure_crises", []),  # ← ДОБАВЛЕНО
         )
 
 
@@ -92,12 +92,11 @@ class Phase2CrisisDef:
 
 @dataclass(slots=True)
 class MiniGameDef:
-    """Определение мини-игры из конфига"""
-
     id: str
     name: str
     rules: str
-    crisis_events: List[str]  # к каким кризисам применима
+    crisis_events: List[str]
+    tags: List[str] = field(default_factory=list)  # ← ДОБАВЛЕНО
 
     @classmethod
     def from_raw(cls, raw: Any) -> "MiniGameDef":
@@ -109,6 +108,7 @@ class MiniGameDef:
             name=raw.get("name", raw["id"]),
             rules=raw.get("rules", ""),
             crisis_events=raw.get("crisis_events", []),
+            tags=raw.get("tags", []),  # ← ДОБАВЛЕНО
         )
 
 

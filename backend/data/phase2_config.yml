@@ -1,30 +1,22 @@
-# Базовые настройки игры
+# Конфиг для тестов с увеличенными лимитами
 game_settings:
-  max_rounds: 3 # еще меньше для быстрого теста
-  starting_bunker_hp: 3 # очень мало
-  starting_morale: 3 # очень мало
-  starting_supplies: 3 # очень мало
-  supplies_countdown_limit: 1
-  morale_countdown_limit: 1
-  # Начальные объекты бункера
+  max_rounds: 5
+  starting_bunker_hp: 5
+  starting_morale: 5
+  starting_supplies: 5
+  max_bunker_hp: 10 # ← НОВОЕ: максимум больше начального
+  max_morale: 10 # ← НОВОЕ
+  max_supplies: 10 # ← НОВОЕ
+  supplies_countdown_limit: 2
+  morale_countdown_limit: 2
   initial_bunker_objects:
     - id: "generator"
       name: "Генератор"
       status: "working"
-    - id: "ventilation"
-      name: "Вентиляционная система"
-      status: "working"
     - id: "medical_bay"
       name: "Медпункт"
       status: "working"
-    - id: "communications"
-      name: "Система связи"
-      status: "working"
-    - id: "water_filter"
-      name: "Фильтр воды"
-      status: "working"
 
-# Остальное оставляем как было...
 victory_conditions:
   bunker_destroyed:
     condition: bunker_hp <= 0

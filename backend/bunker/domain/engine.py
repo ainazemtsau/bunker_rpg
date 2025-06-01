@@ -128,6 +128,7 @@ class GameEngine:
             raise ValueError("Invalid reveal")
 
         self.game.characters[pid].reveal(attr)
+
         if self._is_last_player():
             self.game.attr_index += 1
             self._phase = GamePhase.DISCUSSION

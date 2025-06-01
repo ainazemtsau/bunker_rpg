@@ -328,7 +328,7 @@ class Phase2Engine:
         return self.game.phase2_action_queue[self.game.phase2_current_action_index]
 
     def process_current_action(self) -> ActionResult:
-        """Обработать текущее действие С ДЕТАЛЬНЫМ ЛОГИРОВАНИЕМ"""
+        """Обработать текущее действие С НОВОЙ ЛОГИКОЙ"""
         if self.game.phase2_current_action_index >= len(self.game.phase2_action_queue):
             raise ValueError("No actions to process")
 
@@ -337,7 +337,7 @@ class Phase2Engine:
         ]
         action_def = self.data.phase2_actions[action_data["action_type"]]
 
-        # НОВОЕ: Получаем детальную информацию ДО выполнения
+        # Получаем детальную информацию ДО выполнения
         action_preview = self.get_action_preview(
             action_data["participants"], action_data["action_type"]
         )
@@ -348,7 +348,7 @@ class Phase2Engine:
         )
 
         if status_modifiers["blocked"]:
-            # Действие заблокировано статусами
+            # Действие заблокировано - сохраняем результат и переходим дальше
             result = ActionResult(
                 success=False,
                 participants=action_data["participants"],
@@ -358,47 +358,29 @@ class Phase2Engine:
                 difficulty=action_def.difficulty,
                 effects={"blocked_by_statuses": status_modifiers["blocking_statuses"]},
             )
-
-            # ОБНОВЛЕННОЕ логирование с детальной информацией
-            self.game.phase2_processed_actions.append(
-                {
-                    "action_type": action_data["action_type"],
-                    "participants": action_data["participants"],
-                    "blocked": True,
-                    "blocking_statuses": status_modifiers["blocking_statuses"],
-                    "preview": action_preview,  # ← НОВОЕ: детальная информация
-                    "timestamp": self.game.phase2_round,
-                }
+            self._save_action_result(
+                action_data, result, action_preview, status_modifiers, blocked=True
             )
-
             self.game.phase2_current_action_index += 1
             return result
 
-        # Расчет статистик с учетом модификаторов статусов
+        # Расчет статистик и бросок
         combined_stats = self._calculate_action_stats_with_bonuses(
             action_data["participants"], action_def
         )
-
-        # Применяем модификаторы эффективности от статусов
         combined_stats = int(combined_stats * status_modifiers["effectiveness"])
 
-        # Бросок кубика
-        roll = self.rng.randint(1, 2)
-        print(
-            f"Roll for action {action_data['action_type']} (participants: {action_data['participants']}): {roll}"
-        )
-        # Применяем модификаторы сложности от статусов
+        roll = self.rng.randint(1, 20)
         modified_difficulty = (
             action_def.difficulty + status_modifiers["difficulty_modifier"]
         )
-        print(
-            f"Modified difficulty: {modified_difficulty} (base: {action_def.difficulty}, modifier: {status_modifiers['difficulty_modifier']})"
-        )
         total = roll + combined_stats
         success = total >= modified_difficulty
+
         print(
-            f"Total roll: {total} (roll: {roll}, combined stats: {combined_stats}) - Success: {success}"
+            f"Action {action_data['action_type']}: roll={roll}, stats={combined_stats}, difficulty={modified_difficulty}, success={success}"
         )
+
         # Создание результата
         result = ActionResult(
             success=success,
@@ -410,42 +392,146 @@ class Phase2Engine:
             effects={},
         )
 
-        # Применение эффектов (существующий код)
+        # ← НОВАЯ ЛОГИКА
         if success:
+            # Успех - применяем эффекты успеха и снимаем статусы
             effects = action_def.effects.get("success", {})
             self._apply_action_effects(effects, result, action_def)
             self._check_status_removal(action_data["action_type"])
+            print(f"Action succeeded, applied effects: {effects}")
+
         else:
-            effects = action_def.effects.get("failure", {})
-            self._apply_action_effects(effects, result, action_def)
+            # Провал
+            if action_def.team == "bunker":
+                # Команда бункера - запускаем мини-игру
+                mini_game_info = self._select_mini_game_for_action(action_def)
+                if mini_game_info:
+                    result.crisis_triggered = (
+                        f"action_minigame_{action_data['action_type']}"
+                    )
+                    self._current_crisis = self._create_action_minigame_event(
+                        action_def, mini_game_info
+                    )
+                    print(
+                        f"Bunker action failed, starting mini-game: {mini_game_info.name}"
+                    )
+                else:
+                    print(
+                        f"No mini-game found for failed bunker action {action_def.id}"
+                    )
+            else:
+                # Команда снаружи - применяем эффекты провала сразу
+                effects = action_def.effects.get("failure", {})
+                self._apply_action_effects(effects, result, action_def)
+                print(f"Outside team action failed, applied effects: {effects}")
 
-            if action_def.team == "bunker" and "crisis_trigger" in effects:
-                crisis_id = effects["crisis_trigger"]
-                print(f"Triggering crisis: {crisis_id}")
-                result.crisis_triggered = crisis_id
-                self._current_crisis = self._create_crisis_event(crisis_id)
-
-        # ОБНОВЛЕННОЕ сохранение результата с детальной информацией
-        self.game.phase2_processed_actions.append(
-            {
-                "action_type": action_data["action_type"],
-                "participants": action_data["participants"],
-                "roll": roll,
-                "combined_stats": combined_stats,
-                "difficulty": modified_difficulty,
-                "success": success,
-                "effects": result.effects,
-                "status_modifiers": status_modifiers,
-                "crisis_triggered": result.crisis_triggered,
-                "preview": action_preview,  # ← НОВОЕ: детальная информация
-                "timestamp": self.game.phase2_round,
-                "total_needed": total,
-                "required_roll": max(1, modified_difficulty - combined_stats),
-            }
-        )
-
+        # Сохраняем результат
+        self._save_action_result(action_data, result, action_preview, status_modifiers)
         self.game.phase2_current_action_index += 1
         return result
+
+    def _save_action_result(
+        self,
+        action_data: Dict,
+        result: ActionResult,
+        action_preview: Dict,
+        status_modifiers: Dict,
+        blocked: bool = False,
+    ) -> None:
+        """Сохранить результат действия"""
+        saved_result = {
+            "action_type": action_data["action_type"],
+            "participants": action_data["participants"],
+            "success": result.success,
+            "effects": result.effects,
+            "status_modifiers": status_modifiers,
+            "preview": action_preview,
+            "timestamp": self.game.phase2_round,
+        }
+
+        if blocked:
+            saved_result["blocked"] = True
+            saved_result["blocking_statuses"] = status_modifiers["blocking_statuses"]
+        else:
+            saved_result.update(
+                {
+                    "roll": result.roll_result,
+                    "combined_stats": result.combined_stats,
+                    "difficulty": result.difficulty,
+                    "crisis_triggered": result.crisis_triggered,
+                }
+            )
+
+        self.game.phase2_processed_actions.append(saved_result)
+
+    def _create_action_minigame_event(
+        self, action_def: Phase2ActionDef, mini_game_info: MiniGameInfo
+    ) -> CrisisEvent:
+        """Создать событие мини-игры для провалившегося действия"""
+        return CrisisEvent(
+            crisis_id=f"action_minigame_{action_def.id}",
+            name=f"Испытание: {action_def.name}",
+            description=f"Действие '{action_def.name}' провалилось! Команда бункера должна пройти испытание, чтобы избежать негативных последствий.",
+            important_stats=list(action_def.stat_weights.keys()),
+            team_advantages={},
+            penalty_on_fail={
+                "action_id": action_def.id,
+                "failure_crises": action_def.failure_crises,
+            },
+            mini_game=mini_game_info,
+        )
+
+    def _select_mini_game_for_action(
+        self, action_def: Phase2ActionDef
+    ) -> Optional[MiniGameInfo]:
+        """Выбрать мини-игру для провалившегося действия"""
+        suitable_games = []
+
+        # Сначала ищем мини-игры, привязанные к действию
+        for mini_game_id in action_def.mini_games:
+            if mini_game_id in self.data.mini_games:
+                suitable_games.append(self.data.mini_games[mini_game_id])
+
+        # Если нет, ищем дефолтные
+        if not suitable_games:
+            for mini_game in self.data.mini_games.values():
+                if hasattr(mini_game, "tags") and "default" in getattr(
+                    mini_game, "tags", []
+                ):
+                    suitable_games.append(mini_game)
+
+        if not suitable_games:
+            print(f"WARNING: No mini-games found for action {action_def.id}")
+            return None
+
+        # Выбираем случайную
+        selected_game = self.rng.choice(suitable_games)
+        print(f"Selected mini-game '{selected_game.name}' for action {action_def.id}")
+
+        return MiniGameInfo(
+            mini_game_id=selected_game.id,
+            name=selected_game.name,
+            rules=selected_game.rules,
+        )
+
+    def _create_action_failure_event(
+        self,
+        action_def: Phase2ActionDef,
+        mini_game_info: MiniGameInfo,
+        participants: List[str],
+    ) -> CrisisEvent:
+        """Создать событие для провалившегося действия с мини-игрой"""
+        return CrisisEvent(
+            crisis_id=f"action_failure_{action_def.id}",
+            name=f"Неудача: {action_def.name}",
+            description=f"Действие '{action_def.name}' провалилось. Команда должна сыграть в мини-игру чтобы избежать негативных последствий.",
+            important_stats=list(action_def.stat_weights.keys()),
+            team_advantages={},  # можем рассчитать на основе участников
+            penalty_on_fail=action_def.effects.get(
+                "failure", {}
+            ),  # ← эффекты провала действия
+            mini_game=mini_game_info,
+        )
 
     def _check_status_removal(self, action_id: str) -> List[str]:
         """Проверить и снять статусы при успешном действии"""
@@ -519,10 +605,16 @@ class Phase2Engine:
         if "bunker_heal" in effects:
             heal = effects["bunker_heal"]
             print(f"Applying bunker heal: {heal}")
-            max_hp = self.config.game_settings.get("starting_bunker_hp", 7)
+            # ← ИСПРАВЛЕНИЕ: используем max_bunker_hp если есть, иначе starting_bunker_hp
+            max_hp = self.config.game_settings.get(
+                "max_bunker_hp", self.config.game_settings.get("starting_bunker_hp", 10)
+            )
+            old_hp = self.game.phase2_bunker_hp
             self.game.phase2_bunker_hp += heal
             self.game.phase2_bunker_hp = min(max_hp, self.game.phase2_bunker_hp)
-            print(f"New bunker HP: {self.game.phase2_bunker_hp}")
+            print(
+                f"Bunker HP: {old_hp} + {heal} = {old_hp + heal}, capped at {max_hp} = {self.game.phase2_bunker_hp}"
+            )
 
         # Урон/лечение морали
         if "morale_damage" in effects:
@@ -535,10 +627,15 @@ class Phase2Engine:
         if "morale_heal" in effects:
             heal = effects["morale_heal"]
             print(f"Applying morale heal: {heal}")
-            max_morale = self.config.game_settings.get("starting_morale", 10)
+            max_morale = self.config.game_settings.get(
+                "max_morale", self.config.game_settings.get("starting_morale", 10)
+            )
+            old_morale = self.game.phase2_morale
             self.game.phase2_morale += heal
             self.game.phase2_morale = min(max_morale, self.game.phase2_morale)
-            print(f"New morale: {self.game.phase2_morale}")
+            print(
+                f"Morale: {old_morale} + {heal} = {old_morale + heal}, capped at {max_morale} = {self.game.phase2_morale}"
+            )
 
         # Урон/лечение припасов
         if "supplies_damage" in effects:
@@ -551,12 +648,16 @@ class Phase2Engine:
         if "supplies_heal" in effects:
             heal = effects["supplies_heal"]
             print(f"Applying supplies heal: {heal}")
-            max_supplies = self.config.game_settings.get("starting_supplies", 8)
+            max_supplies = self.config.game_settings.get(
+                "max_supplies", self.config.game_settings.get("starting_supplies", 10)
+            )
+            old_supplies = self.game.phase2_supplies
             self.game.phase2_supplies += heal
             self.game.phase2_supplies = min(max_supplies, self.game.phase2_supplies)
-            print(f"New supplies: {self.game.phase2_supplies}")
+            print(
+                f"Supplies: {old_supplies} + {heal} = {old_supplies + heal}, capped at {max_supplies} = {self.game.phase2_supplies}"
+            )
 
-        # Повреждение объектов
         if "object_damage" in effects:
             for obj_id in effects["object_damage"]:
                 if obj_id in self.game.phase2_bunker_objects:
@@ -602,13 +703,13 @@ class Phase2Engine:
             )
             result.effects["status_applied"] = status_id if success else None
 
-        # ← НОВОЕ: Снятие статусов
+        # Снятие статусов
         if "remove_status" in effects:
             status_id = effects["remove_status"]
             success = self._status_manager.remove_status(status_id)
             result.effects["status_removed"] = status_id if success else None
 
-        # ← НОВОЕ: Лечение фобии
+        # Лечение фобии
         if "cure_phobia" in effects and effects["cure_phobia"]:
             cured_players = []
             for participant in result.participants:
@@ -616,9 +717,10 @@ class Phase2Engine:
                     del self.game.phase2_player_phobias[participant]
                     cured_players.append(participant)
             result.effects["phobias_cured"] = cured_players
+
         self._calculate_team_stats()
         print(
-            f"After - HP: {self.game.phase2_bunker_hp}, Morale: {self.game.phase2_morale}, Supplies: {self.game.phase2_supplies}"
+            f"After effects - HP: {self.game.phase2_bunker_hp}, Morale: {self.game.phase2_morale}, Supplies: {self.game.phase2_supplies}"
         )
 
     def _create_crisis_event(self, crisis_id: str) -> CrisisEvent:
@@ -683,42 +785,120 @@ class Phase2Engine:
         return self._current_crisis
 
     def resolve_crisis(self, result: CrisisResult) -> None:
-        """Разрешить кризис"""
+        """Разрешить кризис/мини-игру"""
         if not self._current_crisis:
             return
 
+        if self._current_crisis.crisis_id.startswith("action_minigame_"):
+            # Это мини-игра от провалившегося действия
+            self._resolve_action_minigame(result)
+        else:
+            # Обычный кризис - существующая логика
+            crisis_def = self.data.phase2_crises.get(self._current_crisis.crisis_id)
+            if not crisis_def:
+                return
+
+            if result == CrisisResult.BUNKER_LOSE:
+                self._apply_crisis_penalties(crisis_def.penalty_on_fail)
+
+                for status in crisis_def.adds_status:
+                    self._status_manager.apply_status(
+                        status, f"crisis_{self._current_crisis.crisis_id}"
+                    )
+
+                self._trigger_phobias(
+                    crisis_def.triggers_phobias, self._current_crisis.crisis_id
+                )
+
+        # Логируем и очищаем
+        self.game.phase2_action_log.append(
+            {
+                "type": (
+                    "minigame"
+                    if self._current_crisis.crisis_id.startswith("action_minigame_")
+                    else "crisis"
+                ),
+                "crisis_id": self._current_crisis.crisis_id,
+                "result": result.value,
+                "round": self.game.phase2_round,
+            }
+        )
+
+        self._current_crisis = None
+
+    def _resolve_regular_crisis(self, result: CrisisResult) -> None:
+        """Разрешить обычный кризис (существующая логика)"""
         crisis_def = self.data.phase2_crises.get(self._current_crisis.crisis_id)
         if not crisis_def:
             return
 
         if result == CrisisResult.BUNKER_LOSE:
-            # Применяем все штрафы из crisis_def.penalty_on_fail
             self._apply_crisis_penalties(crisis_def.penalty_on_fail)
 
-            # Добавляем статусы
             for status in crisis_def.adds_status:
-                if status not in self.game.phase2_active_statuses:
-                    self.game.phase2_active_statuses.append(status)
+                self._status_manager.apply_status(
+                    status, f"crisis_{self._current_crisis.crisis_id}"
+                )
 
-            # Триггерим фобии
             self._trigger_phobias(
                 crisis_def.triggers_phobias, self._current_crisis.crisis_id
             )
 
-        # Логируем результат кризиса
-        self.game.phase2_action_log.append(
-            {
-                "type": "crisis",
-                "crisis_id": self._current_crisis.crisis_id,
-                "result": result.value,
-                "penalty_applied": result == CrisisResult.BUNKER_LOSE,
-                "bunker_hp_after": self.game.phase2_bunker_hp,
-                "morale_after": self.game.phase2_morale,
-                "supplies_after": self.game.phase2_supplies,
-            }
-        )
+    def _resolve_action_minigame(self, result: CrisisResult) -> None:
+        """Разрешить мини-игру от провалившегося действия"""
+        if result == CrisisResult.BUNKER_WIN:
+            # Команда выиграла мини-игру - никаких эффектов
+            print("Bunker won mini-game - no negative effects")
+            return
 
-        self._current_crisis = None
+        # Команда проиграла мини-игру - выбираем случайный кризис и применяем его
+        penalty_data = self._current_crisis.penalty_on_fail
+        action_id = penalty_data.get("action_id")
+        failure_crises = penalty_data.get("failure_crises", [])
+
+        if not failure_crises:
+            print(f"No failure crises defined for action {action_id}")
+            return
+
+        # Выбираем случайный кризис
+        selected_crisis_id = self.rng.choice(failure_crises)
+        crisis_def = self.data.phase2_crises.get(selected_crisis_id)
+
+        if not crisis_def:
+            print(f"Crisis {selected_crisis_id} not found")
+            return
+
+        print(f"Bunker lost mini-game, applying crisis: {selected_crisis_id}")
+
+        # Применяем ВСЕ эффекты кризиса
+        self._apply_crisis_penalties(crisis_def.penalty_on_fail)
+
+        # Добавляем статусы от кризиса
+        for status in crisis_def.adds_status:
+            self._status_manager.apply_status(status, f"crisis_{selected_crisis_id}")
+
+        # Триггерим фобии
+        self._trigger_phobias(crisis_def.triggers_phobias, selected_crisis_id)
+
+        # Обновляем статы команд
+        self._calculate_team_stats()
+
+    def _apply_action_failure_effects(self, effects: Dict[str, Any]) -> None:
+        """Применить эффекты провалившегося действия"""
+        # Переиспользуем существующий метод, но убираем создание кризиса
+        temp_action_def = type("TempAction", (), {"id": "temp"})()
+        temp_result = type("TempResult", (), {"effects": {}})()
+
+        # Применяем все эффекты кроме crisis_trigger (его обрабатываем отдельно)
+        filtered_effects = {k: v for k, v in effects.items() if k != "crisis_trigger"}
+        self._apply_action_effects(filtered_effects, temp_result, temp_action_def)
+
+        # Если был crisis_trigger, создаем обычный кризис
+        if "crisis_trigger" in effects:
+            crisis_id = effects["crisis_trigger"]
+            print(f"Action failure triggered additional crisis: {crisis_id}")
+            # Можем либо сразу создать кризис, либо отложить на следующий ход
+            # Для простоты пока создадим сразу (но это может быть слишком сложно)
 
     def _apply_crisis_penalties(self, penalties: Dict[str, Any]) -> None:
         """Применить штрафы от кризиса"""

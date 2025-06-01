@@ -15,6 +15,7 @@ class Character:
     def reveal(self, attr: str) -> None:
         if attr in self.traits and attr not in self.revealed:
             self.revealed.append(attr)
+            self.traits[attr].revealed = True
 
     def is_revealed(self, attr: str) -> bool:
         return attr in self.revealed

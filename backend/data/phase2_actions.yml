@@ -1,87 +1,9 @@
-# Существующие действия...
+# =================== ДЕЙСТВИЯ КОМАНДЫ БУНКЕРА ===================
 
-# =================== СПЕЦИАЛЬНЫЕ ДЕЙСТВИЯ ДЛЯ СНЯТИЯ СТАТУСОВ ===================
-
-- id: extinguish_fire
-  name: "Потушить пожар"
-  team: bunker
-  difficulty: 8
-  required_stats: []
-  stat_weights:
-    СИЛ: 1.0
-    ЗДР: 0.8
-  stat_bonuses: {}
-  requirements:
-    all_of:
-      - active_status: "fire" # появляется только при пожаре
-  effects:
-    success:
-      remove_status: "fire"
-      morale_heal: 1
-    failure:
-      bunker_damage: 1
-  removes_status: ["fire"]
-
-- id: decontamination
-  name: "Дезактивация"
+- id: repair_bunker
+  name: "Ремонт бункера"
   team: bunker
   difficulty: 12
-  required_stats: []
-  stat_weights:
-    ТЕХ: 1.0
-    ИНТ: 0.7
-    ЗДР: 0.5
-  stat_bonuses:
-    profession:
-      "Парамедик": { ТЕХ: 2, ЗДР: 1 }
-      "Инженер-электрик": { ТЕХ: 1 }
-    item:
-      "Набор хирургических инструментов": { ИНТ: 2 }
-  requirements:
-    all_of:
-      - active_status: "contamination"
-  effects:
-    success:
-      remove_status: "contamination"
-      supplies_heal: 1
-    failure:
-      supplies_damage: 1
-      morale_damage: 1
-  removes_status: ["contamination"]
-
-- id: restore_power
-  name: "Восстановить электричество"
-  team: bunker
-  difficulty: 10
-  required_stats: []
-  stat_weights:
-    ТЕХ: 1.0
-    ИНТ: 0.6
-  stat_bonuses:
-    profession:
-      "Инженер-электрик": { ТЕХ: 3 }
-      "IT-админ": { ТЕХ: 2 }
-    hobby:
-      "Ремонт электроники": { ТЕХ: 2 }
-    item:
-      "Арсенал инструментов": { ТЕХ: 1 }
-  requirements:
-    all_of:
-      - active_status: "darkness"
-      - bunker_object: "generator"
-      - bunker_object_state: "working"
-  effects:
-    success:
-      remove_status: "darkness"
-      team_bonus: { ТЕХ: 2 } # временный бонус на раунд
-    failure:
-      bunker_damage: 1
-  removes_status: ["darkness"]
-
-- id: structural_repair
-  name: "Структурный ремонт"
-  team: bunker
-  difficulty: 15
   required_stats: []
   stat_weights:
     СИЛ: 1.0
@@ -89,141 +11,101 @@
   stat_bonuses:
     profession:
       "Плотник": { СИЛ: 2, ТЕХ: 2 }
-      "Солдат-сапёр": { СИЛ: 1, ТЕХ: 1 }
-    item:
-      "Арсенал инструментов": { ТЕХ: 2 }
-  requirements:
-    all_of:
-      - active_status: "structural_weakness"
-  effects:
-    success:
-      remove_status: "structural_weakness"
-      bunker_heal: 2
-      apply_status: "fortified" # накладываем позитивный статус
-    failure:
-      bunker_damage: 2
-      crisis_trigger: "structural_damage"
-  removes_status: ["structural_weakness"]
-
-- id: treat_phobia
-  name: "Лечение фобии"
-  team: bunker
-  difficulty: 11
-  required_stats: []
-  stat_weights:
-    ЭМП: 1.0
-    ХАР: 0.8
-  stat_bonuses:
-    profession:
-      "Парамедик": { ЭМП: 2 }
-      "Дрессировщик животных": { ЭМП: 1, ХАР: 1 }
-    personality:
-      "Медитатор": { ЭМП: 2 }
-      "Альтруист": { ЭМП: 1, ХАР: 1 }
-    hobby:
-      "Йога": { ЭМП: 1 }
-  requirements:
-    any_of:
-      - active_status: "panic_attack"
-      - target_has_phobia: true
-  effects:
-    success:
-      remove_status: "panic_attack"
-      cure_phobia: true
-      morale_heal: 2
-    failure:
-      morale_damage: 1
-  removes_status: ["panic_attack"]
-
-# =================== ПОЗИТИВНЫЕ ДЕЙСТВИЯ ===================
-
-- id: boost_morale_advanced
-  name: "Поднять боевой дух"
-  team: bunker
-  difficulty: 9
-  required_stats: []
-  stat_weights:
-    ХАР: 1.0
-    ЭМП: 0.7
-  stat_bonuses:
-    profession:
-      "Радиоведущий": { ХАР: 2 }
-      "Учитель": { ХАР: 1, ЭМП: 1 }
-    personality:
-      "Лидер": { ХАР: 2 }
-      "Оптимист": { ХАР: 1, ЭМП: 1 }
-  requirements:
-    any_of: []
-    all_of: []
-    not_having:
-      - active_status: "high_morale" # нельзя если уже есть
-  effects:
-    success:
-      morale_heal: 2
-      apply_status: "high_morale"
-    failure:
-      morale_damage: 1
-
-# =================== НОВЫЕ АТАКУЮЩИЕ ДЕЙСТВИЯ (команда снаружи) ===================
-
-- id: psychological_warfare_advanced
-  name: "Психологическая атака"
-  team: outside
-  difficulty: 13
-  required_stats: []
-  stat_weights:
-    ХАР: 1.0
-    ЭМП: 0.8
-  stat_bonuses: {}
+      "Инженер-электрик": { ТЕХ: 2 }
   requirements:
     any_of: []
     all_of: []
     not_having: []
+  mini_games: ["building_challenge", "resource_management"]
+  failure_crises: ["structural_damage"]
   effects:
     success:
-      morale_damage: 2
-      apply_status: "psychological_pressure" # новый негативный статус
-    failure:
-      morale_damage: 1
+      bunker_heal: 2
+  removes_status: []
 
-- id: sabotage_power
-  name: "Саботаж электроснабжения"
+- id: search_supplies
+  name: "Поиск припасов"
+  team: bunker
+  difficulty: 10
+  stat_weights:
+    ИНТ: 1.0
+    ЗДР: 0.8
+  mini_games: ["resource_gathering"]
+  failure_crises: ["resource_shortage", "contamination"]
+  effects:
+    success:
+      supplies_heal: 2
+
+- id: boost_morale
+  name: "Поднять мораль"
+  team: bunker
+  difficulty: 9
+  stat_weights:
+    ХАР: 1.0
+    ЭМП: 0.7
+  mini_games: ["communication_test", "memory_chain"]
+  failure_crises: ["psychological_breakdown"]
+  effects:
+    success:
+      morale_heal: 2
+
+- id: extinguish_fire
+  name: "Потушить пожар"
+  team: bunker
+  difficulty: 8
+  stat_weights:
+    СИЛ: 1.0
+    ЗДР: 0.8
+  requirements:
+    all_of:
+      - active_status: "fire"
+  mini_games: ["fire_drill"]
+  failure_crises: ["fire_outbreak"]
+  effects:
+    success:
+      remove_status: "fire"
+      morale_heal: 1
+  removes_status: ["fire"]
+
+# =================== ДЕЙСТВИЯ КОМАНДЫ СНАРУЖИ ===================
+
+- id: attack_bunker
+  name: "Атака бункера"
   team: outside
   difficulty: 14
-  required_stats: []
   stat_weights:
-    ТЕХ: 1.0
-    ИНТ: 0.7
-  stat_bonuses: {}
-  requirements:
-    any_of: []
-    all_of: []
-    not_having:
-      - active_status: "darkness"
+    СИЛ: 1.0
+    ТЕХ: 0.7
   effects:
     success:
-      bunker_damage: 1
-      apply_status: "darkness"
+      bunker_damage: 3
     failure:
-      bunker_damage: 0
+      bunker_damage: 1 # даже при неудаче немного урона
 
-- id: chemical_attack
-  name: "Химическая атака"
+- id: sabotage_systems
+  name: "Саботаж систем"
   team: outside
-  difficulty: 16
-  required_stats: []
+  difficulty: 13
   stat_weights:
     ТЕХ: 1.0
     ИНТ: 0.8
-  stat_bonuses: {}
-  requirements:
-    any_of: []
-    all_of: []
-    not_having:
-      - active_status: "contamination"
   effects:
     success:
-      apply_status: "contamination"
-      morale_damage: 1
+      apply_status: "darkness"
+      bunker_damage: 1
+    failure:
+      bunker_damage: 0
+
+- id: psychological_warfare
+  name: "Психологическая атака"
+  team: outside
+  difficulty: 11
+  stat_weights:
+    ХАР: 1.0
+    ЭМП: 0.6
+  effects:
+    success:
+      morale_damage: 2
+      apply_status: "psychological_pressure"
     failure:
       morale_damage: 1
