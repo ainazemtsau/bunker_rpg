@@ -1,47 +1,50 @@
-- name: Генератор-портация
-  check: { ТЕХ: 15 }
-  tags: [darkness]
+# ===== БЕСПОЛЕЗНЫЕ ПРЕДМЕТЫ (3 штуки) =====
+- name: "Коллекция использованного нижнего белья"
+  check: { ХАР: 15 }
+  tags: [weird, useless]
 
-- name: Складной байдарочный набор
-  check: { СИЛ: 12 }
-  tags: [water]
+- name: "Сломанный вибратор без зарядки"
+  check: { ТЕХ: 20 }
+  tags: [broken, adult]
 
-- name: Набор хирургических инструментов
-  check: { ИНТ: 14 }
-  tags: [medical]
+- name: "Диплом психолога с AliExpress"
+  check: { ИНТ: 18 }
+  tags: [fake, education]
 
-- name: 50-литровый бак топлива
-  check: { СИЛ: 10 }
-  tags: [fire]
+# ===== СРЕДНИЕ ПРЕДМЕТЫ (6 штук) =====
+- name: "Набор презервативов разных размеров"
+  check: { ХАР: 10 }
+  tags: [safety, adult]
 
-- name: Большой набор LEGO
-  check: { ИНТ: 10 }
-  tags: [mental]
+- name: "Бутылка элитного виски"
+  check: { ХАР: 12 }
+  tags: [alcohol, social]
 
-- name: Книга «Выращивание овощей в подвале»
-  check: { ИНТ: 8 }
-  tags: [food]
-
-- name: Карманный проектор
-  check: { ТЕХ: 8 }
-  tags: [media]
-
-- name: 12-стринговая гитара
-  check: { ХАР: 9 }
-  tags: [social]
-
-- name: Набор отмычек
-  check: { ТЕХ: 12 }
-  tags: [engineer]
-
-- name: Спутниковый телефон
-  check: { ТЕХ: 14 }
-  tags: [tech]
-
-- name: Сейф с кодом
-  check: { ИНТ: 11 }
-  tags: [puzzle]
-
-- name: Пивоваренный комплект
+- name: "Портативная игровая приставка"
   check: { ТЕХ: 10 }
-  tags: [food]
+  tags: [entertainment, tech]
+
+- name: "Набор массажных масел"
+  check: { ЭМП: 11 }
+  tags: [relaxation, adult]
+
+- name: "Профессиональная камера для селфи"
+  check: { ТЕХ: 9 }
+  tags: [tech, social]
+
+- name: "Энергетические напитки на месяц"
+  check: { ЗДР: 8 }
+  tags: [energy, survival]
+
+# ===== МОЩНЫЕ ПРЕДМЕТЫ (3 штуки) =====
+- name: "Полный набор хирургических инструментов"
+  check: { ИНТ: 14 }
+  tags: [medical, professional]
+
+- name: "Военная рация дальнего действия"
+  check: { ТЕХ: 13 }
+  tags: [communication, military]
+
+- name: "Ящик военных сухпайков"
+  check: { СИЛ: 12 }
+  tags: [food, survival]

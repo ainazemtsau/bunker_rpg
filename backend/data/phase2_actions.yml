@@ -1,27 +1,21 @@
-# =================== ДЕЙСТВИЯ КОМАНДЫ БУНКЕРА ===================
+# ========== ДЕЙСТВИЯ КОМАНДЫ БУНКЕРА ==========
 
 - id: repair_bunker
-  name: "Ремонт бункера"
+  name: "Ремонт конструкций"
   team: bunker
   difficulty: 12
-  required_stats: []
   stat_weights:
     СИЛ: 1.0
     ТЕХ: 1.0
   stat_bonuses:
     profession:
-      "Плотник": { СИЛ: 2, ТЕХ: 2 }
-      "Инженер-электрик": { ТЕХ: 2 }
-  requirements:
-    any_of: []
-    all_of: []
-    not_having: []
-  mini_games: ["building_challenge", "resource_management"]
+      "Спецназовец на пенсии": { СИЛ: 3, ТЕХ: 1 }
+      "Айтишник-фрилансер": { ТЕХ: 2 }
+  mini_games: ["building_challenge"]
   failure_crises: ["structural_damage"]
   effects:
     success:
       bunker_heal: 2
-  removes_status: []
 
 - id: search_supplies
   name: "Поиск припасов"
@@ -30,47 +24,144 @@
   stat_weights:
     ИНТ: 1.0
     ЗДР: 0.8
+  requirements:
+    not_having:
+      - active_status: "internet_addiction"
   mini_games: ["resource_gathering"]
-  failure_crises: ["resource_shortage", "contamination"]
+  failure_crises: ["resource_shortage"]
   effects:
     success:
       supplies_heal: 2
 
 - id: boost_morale
-  name: "Поднять мораль"
+  name: "Поднять мораль команды"
   team: bunker
   difficulty: 9
   stat_weights:
     ХАР: 1.0
     ЭМП: 0.7
-  mini_games: ["communication_test", "memory_chain"]
+  stat_bonuses:
+    profession:
+      "Бармен-психолог": { ХАР: 2, ЭМП: 3 }
+      "Прирожденный лидер": { ХАР: 3 }
+  mini_games: ["communication_test"]
   failure_crises: ["psychological_breakdown"]
   effects:
     success:
       morale_heal: 2
+      apply_status: "boosted_morale"
 
-- id: extinguish_fire
-  name: "Потушить пожар"
+- id: tech_repair
+  name: "Ремонт техники"
+  team: bunker
+  difficulty: 13
+  stat_weights:
+    ТЕХ: 1.0
+    ИНТ: 0.8
+  stat_bonuses:
+    profession:
+      "IT-миллионер": { ТЕХ: 3, ИНТ: 2 }
+      "Айтишник-фрилансер": { ТЕХ: 2 }
+  requirements:
+    all_of:
+      - active_status: "tech_malfunction"
+  effects:
+    success:
+      remove_status: "tech_malfunction"
+      bunker_heal: 1
+  removes_status: ["tech_malfunction"]
+
+- id: group_therapy
+  name: "Групповая терапия"
+  team: bunker
+  difficulty: 11
+  stat_weights:
+    ЭМП: 1.0
+    ХАР: 0.8
+  stat_bonuses:
+    profession:
+      "Массажистка с лицензией": { ЭМП: 2, ХАР: 1 }
+      "Бармен-психолог": { ЭМП: 3 }
+  requirements:
+    any_of:
+      - bunker_object: "therapy_couch"
+        bunker_object_state: "working"
+  effects:
+    success:
+      morale_heal: 3
+      cure_phobia: true
+
+- id: orgy_therapy
+  name: "Сексуальная разрядка"
   team: bunker
   difficulty: 8
   stat_weights:
-    СИЛ: 1.0
-    ЗДР: 0.8
+    ХАР: 1.0
+    ЗДР: 0.6
+  stat_bonuses:
+    profession:
+      "Инфлюенсер OnlyFans": { ХАР: 3 }
+      "Продавец интим-товаров": { ХАР: 2 }
+    hobby:
+      "Профессиональные танцы на пилоне": { ХАР: 2, СИЛ: 1 }
   requirements:
     all_of:
-      - active_status: "fire"
-  mini_games: ["fire_drill"]
-  failure_crises: ["fire_outbreak"]
+      - active_status: "sexual_tension"
+    not_having:
+      - active_status: "std_outbreak"
   effects:
     success:
-      remove_status: "fire"
-      morale_heal: 1
-  removes_status: ["fire"]
+      remove_status: "sexual_tension"
+      morale_heal: 2
+      apply_status: "horny_atmosphere"
 
-# =================== ДЕЙСТВИЯ КОМАНДЫ СНАРУЖИ ===================
+- id: brew_alcohol
+  name: "Изготовление алкоголя"
+  team: bunker
+  difficulty: 10
+  stat_weights:
+    ТЕХ: 1.0
+    ИНТ: 0.7
+  stat_bonuses:
+    profession:
+      "Повар-кондитер": { ТЕХ: 2, ИНТ: 1 }
+      "Бармен-психолог": { ТЕХ: 2 }
+  requirements:
+    any_of:
+      - bunker_object: "kitchen_aphrodisiac"
+        bunker_object_state: "working"
+  effects:
+    success:
+      remove_status: "alcohol_shortage"
+      morale_heal: 1
+      supplies_heal: 1
+
+- id: physical_training
+  name: "Физические упражнения"
+  team: bunker
+  difficulty: 9
+  stat_weights:
+    СИЛ: 1.0
+    ЗДР: 0.8
+  stat_bonuses:
+    profession:
+      "Учитель физкультуры": { СИЛ: 2, ЗДР: 2 }
+      "Спецназовец на пенсии": { СИЛ: 3 }
+  requirements:
+    any_of:
+      - bunker_object: "gym_equipment"
+        bunker_object_state: "working"
+    not_having:
+      - active_status: "internet_addiction"
+  effects:
+    success:
+      bunker_heal: 1
+      morale_heal: 1
+
+# ========== ДЕЙСТВИЯ КОМАНДЫ СНАРУЖИ ==========
 
 - id: attack_bunker
-  name: "Атака бункера"
+  name: "Атака укреплений"
   team: outside
   difficulty: 14
   stat_weights:
@@ -80,10 +171,10 @@
     success:
       bunker_damage: 3
     failure:
-      bunker_damage: 1 # даже при неудаче немного урона
+      bunker_damage: 1
 
-- id: sabotage_systems
-  name: "Саботаж систем"
+- id: cyber_attack
+  name: "Кибератака на системы"
   team: outside
   difficulty: 13
   stat_weights:
@@ -91,13 +182,13 @@
     ИНТ: 0.8
   effects:
     success:
-      apply_status: "darkness"
+      apply_status: "tech_malfunction"
       bunker_damage: 1
     failure:
       bunker_damage: 0
 
 - id: psychological_warfare
-  name: "Психологическая атака"
+  name: "Психологические провокации"
   team: outside
   difficulty: 11
   stat_weights:
@@ -106,6 +197,298 @@
   effects:
     success:
       morale_damage: 2
-      apply_status: "psychological_pressure"
+      apply_status: "sexual_tension"
     failure:
       morale_damage: 1
+
+- id: social_media_sabotage
+  name: "Саботаж соцсетей"
+  team: outside
+  difficulty: 12
+  stat_weights:
+    ТЕХ: 1.0
+    ХАР: 0.5
+  effects:
+    success:
+      apply_status: "social_media_crisis"
+      morale_damage: 1
+    failure:
+      morale_damage: 0
+
+- id: supply_blockade
+  name: "Блокада поставок"
+  team: outside
+  difficulty: 10
+  stat_weights:
+    ИНТ: 1.0
+    СИЛ: 0.5
+  effects:
+    success:
+      supplies_damage: 2
+      apply_status: "alcohol_shortage"
+    failure:
+      supplies_damage: 1
+
+# ========== ДОПОЛНЕНИЯ К ДЕЙСТВИЯМ КОМАНДЫ СНАРУЖИ ==========
+
+- id: sabotage_objects
+  name: "Саботаж оборудования"
+  team: outside
+  difficulty: 12
+  stat_weights:
+    ТЕХ: 1.0
+    ИНТ: 0.8
+  effects:
+    success:
+      object_damage: ["porn_server", "gaming_setup"]
+      bunker_damage: 1
+    failure:
+      object_damage: ["luxury_bar"]
+
+- id: targeted_strike
+  name: "Целенаправленный удар"
+  team: outside
+  difficulty: 15
+  stat_weights:
+    СИЛ: 1.0
+    ТЕХ: 0.6
+  effects:
+    success:
+      object_damage: ["medical_bay", "communication_hub", "gym_equipment"]
+      bunker_damage: 2
+    failure:
+      bunker_damage: 1
+
+- id: viral_infection
+  name: "Биологическая атака"
+  team: outside
+  difficulty: 13
+  stat_weights:
+    ИНТ: 1.0
+    ТЕХ: 0.5
+  effects:
+    success:
+      object_damage: ["medical_bay", "massage_room"]
+      apply_status: "std_outbreak"
+      morale_damage: 2
+    failure:
+      morale_damage: 1
+
+# ========== ДОПОЛНЕНИЯ К ДЕЙСТВИЯМ КОМАНДЫ БУНКЕРА ==========
+
+- id: repair_electronics
+  name: "Ремонт электроники"
+  team: bunker
+  difficulty: 11
+  stat_weights:
+    ТЕХ: 1.0
+    ИНТ: 0.7
+  stat_bonuses:
+    profession:
+      "IT-миллионер": { ТЕХ: 3 }
+      "Айтишник-фрилансер": { ТЕХ: 2 }
+  requirements:
+    any_of:
+      - bunker_object: "porn_server"
+        bunker_object_state: "damaged"
+      - bunker_object: "gaming_setup"
+        bunker_object_state: "damaged"
+  effects:
+    success:
+      repair_object: "porn_server" # Чинит один объект за раз
+      morale_heal: 1
+
+- id: medical_equipment_repair
+  name: "Ремонт медоборудования"
+  team: bunker
+  difficulty: 12
+  stat_weights:
+    ИНТ: 1.0
+    ТЕХ: 0.8
+  stat_bonuses:
+    profession:
+      "Хирург-пластик": { ИНТ: 3, ТЕХ: 1 }
+      "Массажистка с лицензией": { ТЕХ: 2 }
+  requirements:
+    any_of:
+      - bunker_object: "medical_bay"
+        bunker_object_state: "damaged"
+      - bunker_object: "massage_room"
+        bunker_object_state: "damaged"
+  effects:
+    success:
+      repair_object: "medical_bay"
+      bunker_heal: 1
+
+- id: restore_entertainment
+  name: "Восстановление развлечений"
+  team: bunker
+  difficulty: 10
+  stat_weights:
+    ТЕХ: 1.0
+    ХАР: 0.6
+  stat_bonuses:
+    profession:
+      "Продавец интим-товаров": { ХАР: 2 }
+      "Профессиональный геймер": { ТЕХ: 3 }
+  requirements:
+    any_of:
+      - bunker_object: "sex_toy_arsenal"
+        bunker_object_state: "damaged"
+      - bunker_object: "strip_pole"
+        bunker_object_state: "damaged"
+  effects:
+    success:
+      repair_object: "sex_toy_arsenal"
+      morale_heal: 2
+
+# ========== ОБНОВЛЕННЫЕ КРИЗИСЫ С ПРЯМЫМ УРОНОМ ОБЪЕКТОВ ==========
+
+- id: equipment_malfunction
+  name: "Поломка оборудования"
+  description: "Критический сбой в работе систем бункера"
+  important_stats: [ТЕХ, ИНТ]
+  penalty_on_fail:
+    bunker_damage: 1
+    object_damage: ["communication_hub", "medical_bay", "luxury_bar"]
+    morale_damage: 1
+  adds_status: ["tech_malfunction"]
+  triggers_phobias: ["Боязнь Wi-Fi сигналов"]
+
+
+- id: medical_treatment
+  name: "Медицинская помощь"
+  team: bunker
+  difficulty: 10
+  stat_weights:
+    ЗДР: 0.8  # ЗДР важно для выносливости врача
+    ИНТ: 1.0
+    ЭМП: 0.6
+  stat_bonuses:
+    profession:
+      "Хирург-пластик": { ИНТ: 4, ЗДР: 2 }
+      "Массажистка с лицензией": { ЗДР: 2, ЭМП: 2 }
+    health:
+      "Идеальное тело порнозвезды": { ЗДР: 2 }
+      "Иммунитет ко всем ЗППП": { ЗДР: 3 }
+  requirements:
+    any_of:
+      - bunker_object: "medical_bay"
+        bunker_object_state: "working"
+    all_of:
+      - active_status: "health_crisis"
+  effects:
+    success:
+      remove_status: "health_crisis"
+      remove_status: "std_outbreak"
+      bunker_heal: 1
+      morale_heal: 2
+  removes_status: ["health_crisis", "std_outbreak"]
+
+- id: emergency_repair
+  name: "Экстренный ремонт"
+  team: bunker
+  difficulty: 15  # Очень сложно
+  stat_weights:
+    ЗДР: 1.0  # ЗДР критично важно
+    СИЛ: 1.0
+    ТЕХ: 0.8
+  stat_bonuses:
+    profession:
+      "Спецназовец на пенсии": { ЗДР: 3, СИЛ: 3, ТЕХ: 1 }
+    health:
+      "Сверхчеловеческая выносливость в постели": { ЗДР: 4, СИЛ: 2 }
+      "Идеальное тело порнозвезды": { ЗДР: 3, СИЛ: 2 }
+  mini_games: ["endurance_challenge"]
+  failure_crises: ["total_system_failure"]
+  effects:
+    success:
+      bunker_heal: 4  # Большое лечение
+      apply_status: "adrenaline_rush"
+    failure:
+      apply_status: "exhaustion"
+
+- id: detox_program
+  name: "Программа детоксикации"
+  team: bunker
+  difficulty: 9
+  stat_weights:
+    ЗДР: 1.0
+    ЭМП: 0.7
+  stat_bonuses:
+    profession:
+      "Массажистка с лицензией": { ЗДР: 2, ЭМП: 2 }
+      "Хирург-пластик": { ЗДР: 3 }
+    health:
+      "Хроническое обезвоживание от алкоголя": { ЗДР: 2 }  # Знает проблему
+    personality:
+      "Бывший алкоголик": { ЗДР: 2, ЭМП: 3 }
+  requirements:
+    any_of:
+      - bunker_object: "detox_chamber"
+        bunker_object_state: "working"
+      - active_status: "alcohol_shortage"
+  effects:
+    success:
+      remove_status: "alcohol_shortage"
+      apply_status: "energy_boost"
+      morale_heal: 1
+
+- id: endurance_training
+  name: "Тренировка выносливости"
+  team: bunker
+  difficulty: 11
+  stat_weights:
+    ЗДР: 1.0
+    СИЛ: 0.8
+  stat_bonuses:
+    profession:
+      "Учитель физкультуры": { ЗДР: 3, СИЛ: 2 }
+      "Спецназовец на пенсии": { ЗДР: 2, СИЛ: 3 }
+    hobby:
+      "Экстремальные виды спорта": { ЗДР: 3, СИЛ: 2 }
+      "Йога в обнаженном виде": { ЗДР: 2 }
+  requirements:
+    any_of:
+      - bunker_object: "fitness_spa"
+        bunker_object_state: "working"
+    not_having:
+      - active_status: "health_crisis"
+      - active_status: "exhaustion"
+  effects:
+    success:
+      bunker_heal: 1
+      morale_heal: 1
+      apply_status: "energy_boost"
+
+# ========== КОМАНДА СНАРУЖИ ==========
+
+- id: biological_warfare
+  name: "Биологическая атака"
+  team: outside
+  difficulty: 12
+  stat_weights:
+    ИНТ: 1.0
+    ТЕХ: 0.8
+    ЗДР: 0.6  # Нужно здоровье чтобы не заразиться самому
+  effects:
+    success:
+      apply_status: "health_crisis"
+      supplies_damage: 1
+      morale_damage: 2
+    failure:
+      apply_status: "std_outbreak"  # Заразили себя
+
+- id: exhaustion_attack
+  name: "Атака на истощение"
+  team: outside
+  difficulty: 10
+  stat_weights:
+    СИЛ: 1.0
+    ЗДР: 0.8
+  effects:
+    success:
+      apply_status: "exhaustion"
+      bunker_damage: 1
+    failure:
+      bunker_damage: 0

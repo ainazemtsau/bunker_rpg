@@ -484,29 +484,43 @@ class Phase2Engine:
     def _select_mini_game_for_action(
         self, action_def: Phase2ActionDef
     ) -> Optional[MiniGameInfo]:
-        """Выбрать мини-игру для провалившегося действия"""
-        suitable_games = []
+        """Выбрать случайную мини-игру для провалившегося действия"""
 
-        # Сначала ищем мини-игры, привязанные к действию
-        for mini_game_id in action_def.mini_games:
-            if mini_game_id in self.data.mini_games:
-                suitable_games.append(self.data.mini_games[mini_game_id])
+        # НОВАЯ ЛОГИКА: выбираем из ВСЕХ доступных мини-игр
+        all_mini_games = list(self.data.mini_games.values())
 
-        # Если нет, ищем дефолтные
-        if not suitable_games:
-            for mini_game in self.data.mini_games.values():
-                if hasattr(mini_game, "tags") and "default" in getattr(
-                    mini_game, "tags", []
-                ):
-                    suitable_games.append(mini_game)
-
-        if not suitable_games:
-            print(f"WARNING: No mini-games found for action {action_def.id}")
+        if not all_mini_games:
+            print(f"WARNING: No mini-games available")
             return None
 
-        # Выбираем случайную
-        selected_game = self.rng.choice(suitable_games)
-        print(f"Selected mini-game '{selected_game.name}' for action {action_def.id}")
+        # Выбираем случайную мини-игру из всех доступных
+        selected_game = self.rng.choice(all_mini_games)
+
+        print(
+            f"Selected random mini-game '{selected_game.name}' for failed action {action_def.id}"
+        )
+
+        return MiniGameInfo(
+            mini_game_id=selected_game.id,
+            name=selected_game.name,
+            rules=selected_game.rules,
+        )
+
+    def _select_mini_game_for_crisis(self, crisis_id: str) -> Optional[MiniGameInfo]:
+        """Выбрать случайную мини-игру для кризиса"""
+
+        # НОВАЯ ЛОГИКА: тоже случайный выбор из всех
+        all_mini_games = list(self.data.mini_games.values())
+
+        if not all_mini_games:
+            print(f"WARNING: No mini-games available for crisis {crisis_id}")
+            return None
+
+        # Выбираем случайную мини-игру
+        selected_game = self.rng.choice(all_mini_games)
+        print(
+            f"Selected random mini-game '{selected_game.name}' for crisis {crisis_id}"
+        )
 
         return MiniGameInfo(
             mini_game_id=selected_game.id,

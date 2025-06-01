@@ -1,48 +1,52 @@
-- name: Учитель
-  add: { ХАР: 3, ИНТ: -1 }
-  team_mult: { ИНТ: 1.2 }
-  tags: [mentor]
+# ===== СЛАБЫЕ ПРОФЕССИИ (3 штуки) =====
+- name: "Блогер лайфстайл"
+  add: { ХАР: 1, ИНТ: -2, ТЕХ: -1 }
+  tags: [social, media]
 
-- name: Плотник
-  add: { СИЛ: 4, ТЕХ: 2 }
-  tags: [craft]
+- name: "Профессиональный геймер"
+  add: { ТЕХ: 2, ЗДР: -3, ЭМП: -2 }
+  tags: [tech, antisocial]
 
-- name: Парамедик
-  add: { ЗДР: 3, ЭМП: 2 }
-  tags: [medical]
+- name: "Инфлюенсер OnlyFans"
+  add: { ХАР: 2, ЭМП: -2, ИНТ: -1 }
+  tags: [social, adult]
 
-- name: Инженер-электрик
-  add: { ТЕХ: 4, ИНТ: 1 }
-  tags: [engineer]
+# ===== СРЕДНИЕ ПРОФЕССИИ (6 штук) =====
+- name: "Бармен-психолог"
+  add: { ХАР: 2, ЭМП: 2, ЗДР: -1 }
+  tags: [social, alcohol]
 
-- name: Повар
-  add: { ХАР: 1 }
-  tags: [food]
+- name: "Массажистка с лицензией"
+  add: { ЭМП: 2, ЗДР: 1, ХАР: 1 }
+  tags: [medical, social]
 
-- name: Астроном
-  add: { ИНТ: 4 }
-  tags: [science]
+- name: "Айтишник-фрилансер"
+  add: { ТЕХ: 3, ИНТ: 1, ЭМП: -1 }
+  tags: [tech, freelance]
 
-- name: Дрессировщик животных
-  add: { ЭМП: 3, ХАР: 1 }
-  tags: [social]
+- name: "Учитель физкультуры"
+  add: { СИЛ: 2, ЗДР: 2, ХАР: 1 }
+  tags: [sport, education]
 
-- name: Солдат-сапёр
-  add: { СИЛ: 3, ТЕХ: 2 }
-  tags: [combat]
+- name: "Продавец интим-товаров"
+  add: { ХАР: 2, ЭМП: 1, ИНТ: 1 }
+  tags: [social, adult]
 
-- name: Юрист
-  add: { ИНТ: 2, ХАР: 2 }
-  tags: [social]
+- name: "Повар-кондитер"
+  add: { ТЕХ: 1, ХАР: 1, ЭМП: 1 }
+  tags: [food, craft]
 
-- name: Радиоведущий
-  add: { ХАР: 4 }
-  tags: [media]
+# ===== СИЛЬНЫЕ ПРОФЕССИИ (3 штуки) =====
+- name: "Хирург-пластик"
+  add: { ИНТ: 4, ТЕХ: 2, ЗДР: 1 }
+  team_mult: { ЗДР: 1.2 }
+  tags: [medical, elite]
 
-- name: Агроинженер
-  add: { ИНТ: 2, ТЕХ: 2 }
-  tags: [food, engineer]
+- name: "Спецназовец на пенсии"
+  add: { СИЛ: 4, ЗДР: 3, ТЕХ: 1 }
+  tags: [combat, military]
 
-- name: IT-админ
-  add: { ИНТ: 3 }
-  tags: [tech]
+- name: "IT-миллионер"
+  add: { ТЕХ: 4, ИНТ: 3, ХАР: 1 }
+  team_mult: { ТЕХ: 1.1 }
+  tags: [tech, elite]

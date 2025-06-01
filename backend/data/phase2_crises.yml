@@ -1,90 +1,134 @@
 - id: structural_damage
-  name: Структурные повреждения
-  description: "В бункере обнаружены трещины в стенах. Требуется срочный ремонт!"
+  name: "Повреждение конструкций"
+  description: "Стены бункера дают трещины от нагрузки"
   important_stats: [ТЕХ, СИЛ]
   penalty_on_fail:
     bunker_damage: 2
+    object_damage: ["gym_equipment", "strip_pole"]
+  adds_status: []
+  triggers_phobias: []
+
+- id: resource_shortage
+  name: "Нехватка ресурсов"
+  description: "Припасы подходят к концу, нужно найти новые источники"
+  important_stats: [ИНТ, ЗДР]
+  penalty_on_fail:
+    supplies_damage: 3
     morale_damage: 1
-  adds_status: []
-  triggers_phobias: ["Клаустрофобия"]
-
-- id: fire_outbreak
-  name: Пожар
-  description: "В бункере вспыхнул пожар! Нужно срочно его потушить!"
-  important_stats: [СИЛ, ЗДР]
-  penalty_on_fail:
-    bunker_damage: 3
-    morale_damage: 2
-    supplies_damage: 1
-  adds_status: ["fire"]
-  triggers_phobias: ["Пирофобия"]
-
-- id: power_failure
-  name: Отключение электричества
-  description: "Генератор вышел из строя. Бункер погружается во тьму!"
-  important_stats: [ТЕХ, ИНТ]
-  penalty_on_fail:
-    bunker_damage: 1
-    supplies_damage: 1
-    object_damage: ["generator", "ventilation"]
-  adds_status: ["darkness"]
-  triggers_phobias: ["Боязнь темноты"]
-
-- id: contamination
-  name: Заражение
-  description: "В системе вентиляции обнаружены токсичные вещества!"
-  important_stats: [ТЕХ, ЗДР]
-  penalty_on_fail:
-    bunker_damage: 1
-    morale_damage: 2
-    supplies_damage: 1
-    team_debuff:
-      target: "bunker"
-      effect: "contaminated"
-      stat_penalties: { ЗДР: -3, ТЕХ: -1 }
-      duration: 3
-  adds_status: ["contamination"]
-  triggers_phobias: ["Мизофобия", "Нозофобия"]
-
-- id: medical_emergency
-  name: Медицинская помощь
-  description: "Один из обитателей бункера серьезно ранен. Требуется немедленная помощь!"
-  important_stats: [ЭМП, ИНТ]
-  penalty_on_fail:
-    morale_damage: 3
-    team_debuff:
-      target: "bunker"
-      effect: "panicked"
-      stat_penalties: { ХАР: -2, ЭМП: -2 }
-      duration: 2
-  adds_status: []
-  triggers_phobias: ["Гематофобия", "Танатофобия"]
+  adds_status: ["alcohol_shortage"]
+  triggers_phobias: ["Боязнь остаться без алкоголя"]
 
 - id: psychological_breakdown
-  name: Психологический срыв
-  description: "Постоянное напряжение доводит обитателей до нервного срыва!"
+  name: "Психологический срыв"
+  description: "Постоянное напряжение доводит до нервного срыва"
   important_stats: [ЭМП, ХАР]
   penalty_on_fail:
     morale_damage: 4
     team_debuff:
       target: "bunker"
-      effect: "broken"
-      stat_penalties: { ХАР: -3, ЭМП: -3, ИНТ: -1 }
+      effect: "depression"
+      stat_penalties: { ХАР: -3, ЭМП: -2 }
       duration: 3
-  adds_status: []
-  triggers_phobias: ["Социофобия"]
+  adds_status: ["sexual_tension", "social_media_crisis"]
+  triggers_phobias:
+    ["Страх оказаться в френдзоне", "Ужас перед отсутствием лайков"]
 
-- id: resource_shortage
-  name: Нехватка ресурсов
-  description: "Запасы еды и воды на исходе. Нужно найти новые источники!"
-  important_stats: [ИНТ, ЗДР]
+- id: tech_malfunction
+  name: "Технический сбой"
+  description: "Критическая поломка электроники"
+  important_stats: [ТЕХ, ИНТ]
   penalty_on_fail:
-    supplies_damage: 3
-    morale_damage: 1
+    bunker_damage: 1
+    object_damage: ["porn_server", "gaming_setup", "communication_hub"]
+  adds_status: ["tech_malfunction", "internet_addiction"]
+  triggers_phobias: ["Боязнь Wi-Fi сигналов", "Фобия плохого интернета"]
+
+- id: contamination_outbreak
+  name: "Вспышка инфекции"
+  description: "Распространение заразной болезни"
+  important_stats: [ЗДР, ИНТ]
+  penalty_on_fail:
+    supplies_damage: 2
+    morale_damage: 2
+    object_damage: ["medical_bay", "massage_room"]
+  adds_status: ["std_outbreak"]
+  triggers_phobias: ["Фобия находиться без презерватива"]
+
+- id: social_crisis
+  name: "Социальный кризис"
+  description: "Конфликты и разногласия разрывают команду"
+  important_stats: [ХАР, ЭМП]
+  penalty_on_fail:
+    morale_damage: 3
     team_debuff:
       target: "bunker"
-      effect: "hungry"
-      stat_penalties: { СИЛ: -2, ЗДР: -2 }
+      effect: "conflict"
+      stat_penalties: { ХАР: -2, ЭМП: -3 }
       duration: 2
-  adds_status: []
+  adds_status: ["sexual_tension"]
+  triggers_phobias: ["Страх перед тещей", "Страх оказаться в френдзоне"]
+
+- id: power_failure
+  name: "Отключение электричества"
+  description: "Полное обесточивание бункера"
+  important_stats: [ТЕХ, ИНТ]
+  penalty_on_fail:
+    bunker_damage: 1
+    object_damage: ["porn_server", "gaming_setup", "luxury_bar"]
+  adds_status: ["tech_malfunction", "internet_addiction"]
+  triggers_phobias:
+    ["Боязнь разрядившегося телефона", "Фобия плохого интернета"]
+
+- id: moral_degradation
+  name: "Моральная деградация"
+  description: "Полная потеря человеческого достоинства"
+  important_stats: [ЭМП, ХАР]
+  penalty_on_fail:
+    morale_damage: 4
+    supplies_damage: 1
+  adds_status: ["horny_atmosphere", "sexual_tension"]
+  triggers_phobias: ["Панический страх трезвости"]
+
+- id: medical_emergency
+  name: "Медицинская катастрофа"
+  description: "Массовое отравление или болезнь поражает бункер"
+  important_stats: [ЗДР, ИНТ, ЭМП] # ЗДР на первом месте
+  penalty_on_fail:
+    supplies_damage: 2
+    morale_damage: 3
+    object_damage: ["medical_bay", "nutrition_lab", "detox_chamber"]
+    team_debuff:
+      target: "bunker"
+      effect: "sick"
+      stat_penalties: { ЗДР: -4, СИЛ: -2, ХАР: -1 }
+      duration: 4
+  adds_status: ["health_crisis", "std_outbreak"]
+  triggers_phobias: ["Фобия находиться без презерватива"]
+
+- id: endurance_test
+  name: "Испытание на выносливость"
+  description: "Системы жизнеобеспечения дают сбой, нужна физическая выносливость"
+  important_stats: [ЗДР, СИЛ]
+  penalty_on_fail:
+    bunker_damage: 2
+    supplies_damage: 2
+    team_debuff:
+      target: "bunker"
+      effect: "exhausted"
+      stat_penalties: { ЗДР: -3, СИЛ: -3 }
+      duration: 3
+  adds_status: ["exhaustion", "health_crisis"]
   triggers_phobias: []
+
+- id: total_system_failure
+  name: "Полный отказ систем"
+  description: "Критический сбой всех систем жизнеобеспечения"
+  important_stats: [ЗДР, ТЕХ, СИЛ]
+  penalty_on_fail:
+    bunker_damage: 3
+    morale_damage: 2
+    supplies_damage: 1
+    object_damage:
+      ["medical_bay", "detox_chamber", "fitness_spa", "communication_hub"]
+  adds_status: ["health_crisis", "exhaustion", "tech_malfunction"]
+  triggers_phobias: ["Панический страх трезвости"]

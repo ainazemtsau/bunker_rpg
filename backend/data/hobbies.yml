@@ -1,47 +1,50 @@
-- name: Бодибилдинг
-  add: { СИЛ: 3 }
-  tags: [sport]
+# ===== СЛАБЫЕ ХОББИ (3 штуки) =====
+- name: "Коллекционирование хентая"
+  add: { ИНТ: -1, ЭМП: -2, ХАР: -1 }
+  tags: [antisocial, weird]
 
-- name: Настольные игры
-  add: { ИНТ: 1 }
-  tags: [mental]
+- name: "Профессиональное лежание на диване"
+  add: { СИЛ: -3, ЗДР: -2, ЭМП: 1 }
+  tags: [lazy]
 
-- name: Пение в караоке
-  add: { ХАР: 2 }
-  tags: [social]
+- name: "Троллинг в интернете"
+  add: { ТЕХ: 1, ЭМП: -3, ХАР: -1 }
+  tags: [antisocial, tech]
 
-- name: Туристические походы
-  add: { ЗДР: 2, СИЛ: 1 }
-  tags: [outdoor]
+# ===== СРЕДНИЕ ХОББИ (6 штук) =====
+- name: "Стриптиз для себя в зеркало"
+  add: { ХАР: 2, СИЛ: 1 }
+  tags: [self-care, dance]
 
-- name: Стрельба из лука
-  add: { ИНТ: 1, СИЛ: 1 }
-  tags: [combat]
+- name: "Дегустация алкоголя"
+  add: { ХАР: 2, ЭМП: 1, ЗДР: -1 }
+  tags: [social, alcohol]
 
-- name: Йога
-  add: { ЗДР: 1, ЭМП: 1 }
-  tags: [relax]
+- name: "Выращивание острого перца"
+  add: { ИНТ: 1, ЗДР: 1, ТЕХ: 1 }
+  tags: [food, patience]
 
-- name: Фотография
-  add: { ИНТ: 1 }
-  tags: [art]
+- name: "Изучение языков через порно"
+  add: { ИНТ: 2, ТЕХ: 1 }
+  tags: [education, adult]
 
-- name: Ремонт электроники
-  add: { ТЕХ: 2 }
-  tags: [tech]
+- name: "Йога в обнаженном виде"
+  add: { ЗДР: 2, ЭМП: 1, ХАР: 1 }
+  tags: [sport, spiritual]
 
-- name: Танцы
-  add: { ХАР: 2 }
-  tags: [social]
+- name: "Готовка афродизиаков"
+  add: { ТЕХ: 1, ИНТ: 1, ХАР: 1 }
+  tags: [food, romance]
 
-- name: Садоводство
-  add: { ЗДР: 1 }
-  tags: [food]
+# ===== СИЛЬНЫЕ ХОББИ (3 штуки) =====
+- name: "Профессиональные танцы на пилоне"
+  add: { СИЛ: 3, ХАР: 2, ЗДР: 2 }
+  tags: [sport, performance]
 
-- name: Плавание
-  add: { ЗДР: 2 }
-  tags: [sport]
+- name: "Экстремальные виды спорта"
+  add: { СИЛ: 3, ЗДР: 3 }
+  tags: [extreme, adrenaline]
 
-- name: Писательство
-  add: { ИНТ: 1, ХАР: 1 }
-  tags: [art]
+- name: "Разработка секс-роботов"
+  add: { ТЕХ: 4, ИНТ: 2 }
+  tags: [tech, engineering, adult]

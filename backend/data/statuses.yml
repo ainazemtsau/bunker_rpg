@@ -1,286 +1,233 @@
-- id: fire
-  name: "Пожар"
-  description: "В бункере бушует пожар. Повреждает здания и блокирует действия."
+- id: horny_atmosphere
+  name: "Развратная атмосфера"
+  description: "В бункере царит сексуальное напряжение"
+  severity: "positive"
+  duration_type: "rounds"
+  duration_value: 3
+  effects:
+    team_stats:
+      bunker: { ХАР: +2, ЭМП: +1 }
+    action_modifiers:
+      - action_id: "group_therapy"
+        difficulty_modifier: -2
+      - action_id: "boost_morale"
+        difficulty_modifier: -3
+    triggers_phobias: []
+  removal_conditions:
+    - action_id: "moral_lecture"
+  ui:
+    icon: "heart"
+    color: "success"
+
+- id: internet_addiction
+  name: "Интернет-зависимость"
+  description: "Обитатели не могут оторваться от экранов"
+  severity: "medium"
+  duration_type: "until_removed"
+  effects:
+    team_stats:
+      bunker: { ТЕХ: +1, СИЛ: -2, ЗДР: -1 }
+    action_modifiers:
+      - action_id: "physical_training"
+        blocked: true
+      - action_id: "search_supplies"
+        difficulty_modifier: 3
+    triggers_phobias:
+      ["Боязнь разрядившегося телефона", "Фобия плохого интернета"]
+  removal_conditions:
+    - action_id: "digital_detox"
+  ui:
+    icon: "phone"
+    color: "warning"
+
+- id: alcohol_shortage
+  name: "Дефицит алкоголя"
+  description: "Запасы алкоголя подходят к концу"
   severity: "high"
   duration_type: "until_removed"
-
   effects:
     per_round_effects:
-      bunker_hp: -1
-      morale: -1
-
+      morale: -2
     team_stats:
-      bunker: { ЗДР: -2, ТЕХ: -1 }
-
-    action_modifiers:
-      - action_id: "repair_bunker"
-        difficulty_modifier: 3
-      - action_id: "search_supplies"
-        blocked: true
-      - action_id: "medical_aid"
-        difficulty_modifier: 2
-
-    bunker_objects:
-      - object_id: "generator"
-        effectiveness: -50
-      - object_id: "ventilation"
-        status_change: "damaged"
-
-    triggers_phobias: ["Пирофобия"]
-
-    player_effects:
-      - type: "stat_penalties"
-        stats: { ЗДР: -1 }
-
+      bunker: { ХАР: -3, ЭМП: -2 }
+    triggers_phobias:
+      ["Боязнь остаться без алкоголя", "Панический страх трезвости"]
   removal_conditions:
-    - action_id: "extinguish_fire"
-
-  interactions:
-    enhanced_by: ["darkness"]
-    conflicts_with: ["fire_extinguished"]
-
+    - action_id: "brew_alcohol"
   ui:
-    icon: "fire"
+    icon: "wine"
     color: "error"
-    notifications:
-      on_apply: "🔥 В бункере вспыхнул пожар!"
-      on_effect: "🔥 Пожар наносит урон каждый раунд"
-      on_remove: "✅ Пожар успешно потушен"
 
-- id: contamination
-  name: "Заражение"
-  description: "Радиоактивное или химическое заражение отравляет обитателей бункера."
+- id: sexual_tension
+  name: "Сексуальное напряжение"
+  description: "Неразрешенное либидо создает конфликты"
+  severity: "medium"
+  duration_type: "rounds"
+  duration_value: 2
+  effects:
+    team_stats:
+      bunker: { ХАР: -2, ЭМП: -2, СИЛ: +1 }
+    action_modifiers:
+      - action_id: "group_therapy"
+        difficulty_modifier: 2
+    triggers_phobias:
+      ["Страх оказаться в френдзоне", "Страх перед маленьким размером"]
+  removal_conditions:
+    - action_id: "orgy_therapy"
+  ui:
+    icon: "tension"
+    color: "warning"
+
+- id: tech_malfunction
+  name: "Технический сбой"
+  description: "Электроника работает с перебоями"
   severity: "high"
   duration_type: "until_removed"
+  effects:
+    team_stats:
+      bunker: { ТЕХ: -3, ИНТ: -1 }
+    bunker_objects:
+      - object_id: "porn_server"
+        effectiveness: -70
+      - object_id: "gaming_setup"
+        status_change: "damaged"
+      - object_id: "communication_hub"
+        effectiveness: -50
+    triggers_phobias: ["Боязнь Wi-Fi сигналов", "Фобия плохого интернета"]
+  removal_conditions:
+    - action_id: "tech_repair"
+  ui:
+    icon: "tech_error"
+    color: "error"
 
+- id: social_media_crisis
+  name: "Кризис соцсетей"
+  description: "Отсутствие лайков и подписчиков"
+  severity: "medium"
+  duration_type: "rounds"
+  duration_value: 3
+  effects:
+    per_round_effects:
+      morale: -1
+    team_stats:
+      bunker: { ХАР: -2, ЭМП: -1 }
+    triggers_phobias: ["Ужас перед отсутствием лайков"]
+  removal_conditions:
+    - action_id: "viral_content"
+  ui:
+    icon: "social"
+    color: "warning"
+
+- id: std_outbreak
+  name: "Вспышка ЗППП"
+  description: "Инфекция распространяется по бункеру"
+  severity: "critical"
+  duration_type: "until_removed"
+  effects:
+    per_round_effects:
+      supplies: -1
+      morale: -2
+    team_stats:
+      bunker: { ЗДР: -3, ХАР: -2 }
+    action_modifiers:
+      - action_id: "orgy_therapy"
+        blocked: true
+    triggers_phobias: ["Фобия находиться без презерватива"]
+  removal_conditions:
+    - action_id: "medical_treatment"
+  ui:
+    icon: "medical_alert"
+    color: "error"
+
+- id: boosted_morale
+  name: "Поднятый боевой дух"
+  description: "Команда воодушевлена и готова к действию"
+  severity: "positive"
+  duration_type: "rounds"
+  duration_value: 2
+  effects:
+    team_stats:
+      bunker: { ХАР: +3, ЭМП: +2 }
+    player_effects:
+      - type: "phobia_immunity"
+  ui:
+    icon: "celebration"
+    color: "success"
+
+- id: health_crisis
+  name: "Кризис здоровья"
+  description: "Обитатели болеют, нужна медпомощь"
+  severity: "high"
+  duration_type: "until_removed"
   effects:
     per_round_effects:
       supplies: -1
       morale: -1
-
     team_stats:
-      bunker: { ЗДР: -3, ТЕХ: -1 }
-
+      bunker: { ЗДР: -4, СИЛ: -2, ХАР: -1 }
     action_modifiers:
-      - action_id: "medical_aid"
-        difficulty_modifier: 5
+      - action_id: "physical_training"
+        blocked: true
       - action_id: "search_supplies"
-        blocked: true
-      - action_id: "repair_bunker"
-        difficulty_modifier: 2
-
-    triggers_phobias: ["Мизофобия", "Нозофобия"]
-
-    player_effects:
-      - type: "stat_penalties"
-        stats: { ЗДР: -2, ЭМП: -1 }
-
-  removal_conditions:
-    - action_id: "decontamination"
-
-  interactions:
-    enhanced_by: ["ventilation_damaged"]
-
-  ui:
-    icon: "contamination"
-    color: "success"
-    notifications:
-      on_apply: "☣️ Обнаружено заражение!"
-      on_effect: "☣️ Заражение отравляет припасы и здоровье"
-      on_remove: "✅ Дезактивация завершена"
-
-- id: darkness
-  name: "Темнота"
-  description: "Отключение электричества затрудняет технические работы."
-  severity: "medium"
-  duration_type: "until_removed"
-
-  effects:
-    team_stats:
-      bunker: { ТЕХ: -3, ИНТ: -1 }
-
-    action_modifiers:
-      - action_id: "repair_bunker"
-        difficulty_modifier: 4
-      - action_id: "fortify"
         difficulty_modifier: 3
-
     bunker_objects:
-      - object_id: "communications"
-        effectiveness: -70
-      - object_id: "laboratory"
-        effectiveness: -50
-
-    triggers_phobias: ["Боязнь темноты"]
-
+      - object_id: "fitness_spa"
+        effectiveness: -80
+    triggers_phobias: ["Фобия находиться без презерватива"]
   removal_conditions:
-    - action_id: "restore_power"
-
-  interactions:
-    enhances: ["fire"]
-
+    - action_id: "medical_treatment"
   ui:
-    icon: "darkness"
-    color: "secondary"
-    notifications:
-      on_apply: "🌑 Электричество отключено!"
-      on_effect: "🌑 Темнота затрудняет работу"
-      on_remove: "💡 Электричество восстановлено"
+    icon: "medical_emergency"
+    color: "error"
 
-- id: structural_weakness
-  name: "Структурные повреждения"
-  description: "Критические повреждения несущих конструкций."
-  severity: "high"
-  duration_type: "until_removed"
-
-  effects:
-    per_round_effects:
-      bunker_hp: -1
-
-    action_modifiers:
-      - action_id: "fortify"
-        blocked: true
-      - action_id: "repair_bunker"
-        difficulty_modifier: 2
-
-    team_stats:
-      bunker: { СИЛ: -2 }
-
-    triggers_phobias: ["Клаустрофобия"]
-
-  removal_conditions:
-    - action_id: "structural_repair"
-
-  ui:
-    icon: "structural"
-    color: "warning"
-    notifications:
-      on_apply: "🏗️ Обнаружены критические повреждения!"
-      on_effect: "🏗️ Конструкции продолжают разрушаться"
-      on_remove: "🔧 Структура восстановлена"
-
-- id: fortified
-  name: "Укреплен"
-  description: "Бункер дополнительно укреплен против атак."
+- id: energy_boost
+  name: "Прилив энергии"
+  description: "Команда полна сил и энергии"
   severity: "positive"
   duration_type: "rounds"
   duration_value: 3
-
   effects:
     team_stats:
-      bunker: { СИЛ: +2, ТЕХ: +1 }
-
+      bunker: { ЗДР: +3, СИЛ: +2, ТЕХ: +1 }
     action_modifiers:
-      - action_id: "attack_bunker"
-        difficulty_modifier: 3
-
+      - action_id: "physical_training"
+        difficulty_modifier: -3
+      - action_id: "repair_bunker"
+        difficulty_modifier: -2
   ui:
-    icon: "shield"
-    color: "primary"
-    notifications:
-      on_apply: "🛡️ Бункер укреплен!"
-      on_effect: "🛡️ Укрепления держатся"
-      on_remove: "⚠️ Укрепления разрушились"
-
-- id: high_morale
-  name: "Высокий боевой дух"
-  description: "Команда воодушевлена и готова к испытаниям."
-  severity: "positive"
-  duration_type: "rounds"
-  duration_value: 2
-
-  effects:
-    team_stats:
-      bunker: { ХАР: +3, ЭМП: +2 }
-
-    action_modifiers:
-      - action_id: "psychological_warfare"
-        difficulty_modifier: 4
-
-    player_effects:
-      - type: "phobia_immunity"
-
-  ui:
-    icon: "celebration"
+    icon: "energy"
     color: "success"
-    notifications:
-      on_apply: "🎉 Боевой дух команды поднят!"
-      on_effect: "💪 Команда полна решимости"
-      on_remove: "😐 Воодушевление прошло"
 
-- id: panic_attack
-  name: "Приступ паники"
-  description: "Игрок охвачен паникой и не может функционировать."
-  severity: "critical"
-  duration_type: "rounds"
-  duration_value: 2
-
-  effects:
-    player_effects:
-      - type: "make_useless"
-        target_player: true
-
-  removal_conditions:
-    - action_id: "treat_phobia"
-
-  ui:
-    icon: "panic"
-    color: "error"
-    notifications:
-      on_apply: "😱 Игрок охвачен паникой!"
-      on_effect: "😰 Паника продолжается"
-      on_remove: "😌 Игрок пришел в себя"
-
-- id: psychological_pressure
-  name: "Психологическое давление"
-  description: "Постоянные угрозы и провокации снаружи давят на психику."
+- id: exhaustion
+  name: "Физическое истощение"
+  description: "Команда на грани физических возможностей"
   severity: "medium"
   duration_type: "rounds"
-  duration_value: 3
-
+  duration_value: 2
   effects:
-    per_round_effects:
-      morale: -1
-
     team_stats:
-      bunker: { ЭМП: -2, ХАР: -1 }
-
+      bunker: { ЗДР: -3, СИЛ: -2 }
     action_modifiers:
-      - action_id: "boost_morale_advanced"
-        difficulty_modifier: 3
-
-    triggers_phobias: ["Социофобия"]
-
-  removal_conditions:
-    - action_id: "boost_morale_advanced"
-
+      - action_id: "repair_bunker"
+        difficulty_modifier: 4
+      - action_id: "physical_training"
+        difficulty_modifier: 5
   ui:
-    icon: "psychology"
+    icon: "exhausted"
     color: "warning"
-    notifications:
-      on_apply: "😰 Команда под психологическим давлением"
-      on_effect: "😰 Давление продолжает влиять на мораль"
-      on_remove: "💪 Команда преодолела давление"
 
-- id: fire_extinguished
-  name: "Пожар потушен"
-  description: "Пожар успешно ликвидирован, система пожаротушения активна."
+- id: adrenaline_rush
+  name: "Адреналиновый всплеск"
+  description: "Стресс мобилизует все силы организма"
   severity: "positive"
   duration_type: "rounds"
-  duration_value: 2
-
+  duration_value: 1
   effects:
+    team_stats:
+      bunker: { ЗДР: +2, СИЛ: +3, ХАР: +1 }
     action_modifiers:
-      - action_id: "sabotage_fire"
-        blocked: true
-
-  interactions:
-    conflicts_with: ["fire"]
-
+      - action_id: "emergency_repair"
+        difficulty_modifier: -4
   ui:
-    icon: "fire_extinguisher"
-    color: "success"
-    notifications:
-      on_apply: "🚒 Система пожаротушения активна"
-      on_effect: "✅ Защита от огня действует"
-      on_remove: "⚠️ Защита от огня прекратилась"
+    icon: "adrenaline"
+    color: "primary"

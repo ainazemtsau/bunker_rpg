@@ -1,83 +1,107 @@
-- name: Боязнь темноты
-  add: { ЭМП: -2 }
-  triggers: [darkness]
+# ===== СЛАБЫЕ ФОБИИ (3 штуки) =====
+- name: "Боязнь Wi-Fi сигналов"
+  add: { ТЕХ: -1 }
+  triggers: [tech]
   on_trigger:
-    penalty: { ИНТ: -4, ХАР: -2 }
-    status: panic
-
-- name: Клаустрофобия
-  add: { ЭМП: -1 }
-  triggers: [confined]
-  on_trigger:
-    penalty: { СИЛ: -3 }
-    status: useless
-
-- name: Агорафобия
-  add: { ЭМП: -1 }
-  triggers: [crowd]
-  on_trigger:
-    penalty: { ХАР: -3 }
+    penalty: { ТЕХ: -2, ИНТ: -1 }
     status: hindrance
 
-- name: Арахнофобия
-  add: {}
-  triggers: [insects]
-  on_trigger:
-    penalty: { ИНТ: -2 }
-    status: panic
-
-- name: Гематофобия
-  add: {}
-  triggers: [medical]
-  on_trigger:
-    penalty: { ЭМП: -3 }
-    status: useless
-
-- name: Аквафобия
-  add: {}
-  triggers: [water]
-  on_trigger:
-    penalty: { СИЛ: -2 }
-    status: hindrance
-
-- name: Танатофобия
-  add: { ЭМП: -2 }
-  triggers: [death]
-  on_trigger:
-    penalty: { ИНТ: -2 }
-    status: panic
-
-- name: Социофобия
-  add: { ХАР: -3 }
-  triggers: [social]
+- name: "Страх перед веганами"
+  add: { ЭМП: -1 }
+  triggers: [food, social]
   on_trigger:
     penalty: { ХАР: -2 }
     status: useless
 
-- name: Пирофобия
-  add: {}
-  triggers: [fire]
+- name: "Фобия контакта с девственниками"
+  add: { ХАР: -1 }
+  triggers: [social]
   on_trigger:
-    penalty: { СИЛ: -2 }
+    penalty: { ЭМП: -2, ХАР: -1 }
     status: hindrance
 
-- name: Аэрофобия
-  add: {}
-  triggers: [height]
+# ===== СРЕДНИЕ ФОБИИ (6 штук) =====
+- name: "Страх оказаться в френдзоне"
+  add: { ХАР: -1 }
+  triggers: [social, romance]
   on_trigger:
-    penalty: { ИНТ: -1 }
+    penalty: { ХАР: -3, ЭМП: -1 }
     status: useless
 
-- name: Мизофобия
-  add: {}
-  triggers: [infection]
+- name: "Боязнь разрядившегося телефона"
+  add: { ТЕХ: -1 }
+  triggers: [tech, isolation]
   on_trigger:
-    penalty: { ЭМП: -2 }
+    penalty: { ТЕХ: -2, ЭМП: -2 }
+    status: panic
+
+- name: "Страх перед тещей"
+  add: { ЭМП: -1 }
+  triggers: [social, family]
+  on_trigger:
+    penalty: { ХАР: -2, ИНТ: -1 }
+    status: useless
+
+- name: "Фобия плохого интернета"
+  add: { ТЕХ: -1 }
+  triggers: [tech]
+  on_trigger:
+    penalty: { ТЕХ: -3 }
     status: hindrance
 
-- name: Нозофобия
-  add: {}
-  triggers: [disease]
+- name: "Боязнь остаться без алкоголя"
+  add: { ЗДР: -1 }
+  triggers: [alcohol, social]
   on_trigger:
-    penalty: { ЭМП: -2 }
+    penalty: { ХАР: -2, ЭМП: -2 }
     status: panic
+
+- name: "Страх перед маленьким размером"
+  add: { ХАР: -2 }
+  triggers: [intimate, social]
+  on_trigger:
+    penalty: { ХАР: -3, ЭМП: -1 }
+    status: useless
+
+# ===== ТЯЖЕЛЫЕ ФОБИИ (3 штуки) =====
+- name: "Панический страх трезвости"
+  add: { ЭМП: -2 }
+  triggers: [social, isolation]
+  on_trigger:
+    penalty: { ХАР: -4, ЭМП: -3, ИНТ: -2 }
+    status: panic
+
+- name: "Ужас перед отсутствием лайков"
+  add: { ХАР: -2 }
+  triggers: [social, tech]
+  on_trigger:
+    penalty: { ХАР: -4, ЭМП: -2, ТЕХ: -2 }
+    status: panic
+
+- name: "Фобия находиться без презерватива"
+  add: { ЭМП: -2 }
+  triggers: [intimate, social]
+  on_trigger:
+    penalty: { ХАР: -3, ЭМП: -3 }
+    status: useless
+
+- name: "Ипохондрия" # НОВАЯ
+  add: { ЗДР: -2, ЭМП: -1 }
+  triggers: [medical, health]
+  on_trigger:
+    penalty: { ЗДР: -3, ИНТ: -2, ЭМП: -2 }
+    status: panic
+
+- name: "Боязнь физических нагрузок" # НОВАЯ
+  add: { СИЛ: -1, ЗДР: -2 }
+  triggers: [sport, physical]
+  on_trigger:
+    penalty: { ЗДР: -4, СИЛ: -3 }
+    status: useless
+
+- name: "Фобия больниц" # НОВАЯ
+  add: { ЗДР: -1, ЭМП: -1 }
+  triggers: [medical]
+  on_trigger:
+    penalty: { ЗДР: -3, ЭМП: -2 }
+    status: hindrance
